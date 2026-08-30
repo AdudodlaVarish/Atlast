@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Site BuildName="Win32-mingw32-make"
+	BuildStamp="20260830-0338-Experimental"
+	Name="Varish"
+	Generator="ctest-4.3.3"
+	CompilerName="C:/msys64/ucrt64/bin/g++.exe"
+	CompilerVersion="16.1.0"
+	OSName="Windows"
+	Hostname="Varish"
+	OSRelease="10.0.26200"
+	OSVersion="Windows 10"
+	OSPlatform="AMD64"
+	Is64Bits="1"
+	VendorString=""
+	VendorID="Unknown Manufacturer"
+	FamilyID="0"
+	ModelID="0"
+	ModelName=""
+	ProcessorCacheSize="0"
+	NumberOfLogicalCPU="14"
+	NumberOfPhysicalCPU="12"
+	TotalVirtualMemory="1984"
+	TotalPhysicalMemory="15849"
+	LogicalProcessorsPerPhysical="1"
+	ProcessorClockFrequency="1700.000000"
+	>
+	<Testing>
+		<StartDateTime>Aug 29 22:38 Central Daylight Time</StartDateTime>
+		<StartTestTime>1788061128</StartTestTime>
+		<TestList/>
+		<EndDateTime>Aug 29 22:38 Central Daylight Time</EndDateTime>
+		<EndTestTime>1788061128</EndTestTime>
+		<ElapsedMinutes>0</ElapsedMinutes>
+	</Testing>
+</Site>

@@ -1,0 +1,3 @@
+C:\msys64\ucrt64\bin\cmake.exe -E rm -f CMakeFiles\atlas.dir/objects.a
+C:\msys64\ucrt64\bin\ar.exe qc CMakeFiles\atlas.dir/objects.a @CMakeFiles\atlas.dir\objects1.rsp
+C:\msys64\ucrt64\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\atlas.dir/objects.a -Wl,--no-whole-archive -o atlas.exe -Wl,--out-implib,libatlas.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\atlas.dir\linkLibs.rsp
