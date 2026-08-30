@@ -3638,3 +3638,89 @@ events:
         - "C:/msys64/ucrt64"
         - "C:/Program Files (x86)/Project"
 ...
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "C:/msys64/ucrt64/share/cmake/Modules/CTest.cmake:171 (find_program)"
+      - "CMakeLists.txt:13 (include)"
+    mode: "program"
+    variable: "GITCOMMAND"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "NEVER"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "git"
+    candidate_directories:
+      - "C:/msys64/ucrt64/bin/"
+      - "C:/msys64/usr/bin/"
+      - "C:/Windows/System32/"
+      - "C:/Windows/"
+      - "C:/Windows/System32/wbem/"
+      - "C:/Windows/System32/WindowsPowerShell/v1.0/"
+      - "C:/Windows/System32/OpenSSH/"
+      - "C:/Program Files/dotnet/"
+      - "C:/Program Files/nodejs/"
+      - "C:/Users/varis/AppData/Local/Programs/Python/Python313/Scripts/"
+      - "C:/Users/varis/AppData/Local/Programs/Python/Python313/"
+      - "C:/Users/varis/AppData/Local/Microsoft/WindowsApps/"
+      - "C:/Users/varis/AppData/Local/Programs/Microsoft VS Code/bin/"
+      - "C:/Users/varis/AppData/Local/Programs/Git/cmd/"
+      - "C:/Users/varis/AppData/Local/Programs/Ollama/"
+      - "C:/Users/varis/AppData/Roaming/npm/"
+      - "C:/msys64/ucrt64/bin/"
+      - "C:/msys64/ucrt64/sbin/"
+      - "C:/msys64/ucrt64/"
+      - "C:/Program Files/bin/"
+      - "C:/Program Files/sbin/"
+      - "C:/Program Files/"
+      - "C:/Program Files (x86)/bin/"
+      - "C:/Program Files (x86)/sbin/"
+      - "C:/Program Files (x86)/"
+      - "C:/Program Files (x86)/Project/bin/"
+      - "C:/Program Files (x86)/Project/sbin/"
+      - "C:/Program Files (x86)/Project/"
+    searched_directories:
+      - "C:/msys64/ucrt64/bin/git.com"
+      - "C:/msys64/ucrt64/bin/git.exe"
+      - "C:/msys64/ucrt64/bin/git"
+      - "C:/msys64/usr/bin/git.com"
+    found: "C:/msys64/usr/bin/git.exe"
+    search_context:
+      ENV{PATH}:
+        - "C:\\msys64\\ucrt64\\bin"
+        - "C:\\msys64\\ucrt64\\bin"
+        - "C:\\msys64\\ucrt64\\bin"
+        - "C:\\msys64\\usr\\bin"
+        - "C:/Windows/system32"
+        - "C:\\Windows"
+        - "C:/Windows/System32/Wbem"
+        - "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\"
+        - "C:/Windows/System32/OpenSSH/"
+        - "C:\\Program Files\\dotnet\\"
+        - "C:/Program Files/nodejs/"
+        - "C:/msys64/ucrt64/bin"
+        - "C:/Users/varis/AppData/Local/Programs/Python/Python313/Scripts/"
+        - "C:\\Users\\varis\\AppData\\Local\\Programs\\Python\\Python313\\"
+        - "C:/Users/varis/AppData/Local/Microsoft/WindowsApps"
+        - "C:\\Users\\varis\\AppData\\Local\\Programs\\Microsoft VS Code\\bin"
+        - "C:\\msys64\\ucrt64\\bin"
+        - "C:\\Users\\varis\\AppData\\Local\\Programs\\Git\\cmd"
+        - "C:/Users/varis/AppData/Local/Programs/Ollama"
+        - "C:\\Users\\varis\\AppData\\Roaming\\npm"
+      CMAKE_INSTALL_PREFIX: "C:/Program Files (x86)/Project"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "C:/msys64/ucrt64"
+        - "C:/Program Files"
+        - "C:/Program Files (x86)"
+        - "C:/msys64/ucrt64"
+        - "C:/Program Files (x86)/Project"
+...
