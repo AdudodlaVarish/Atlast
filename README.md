@@ -218,7 +218,8 @@ atlast search <query> [--limit <1-100>] [--db <database>]
 
 Arguments and options:
 
-- `<query>` is an SQLite FTS5 query. Quote it at the shell level when it
+- `<query>` contains FTS5 search text and may include Atlast's `path:`, `ext:`,
+  and `modified:` filters. Quote the complete query at the shell level when it
   contains spaces.
 - `--limit <1-100>` controls the maximum number of results. The default is 10.
 - `--db <database>` selects the database file. It defaults to `atlast.db` in
@@ -238,9 +239,10 @@ absolute quality score across unrelated queries.
 
 ## Search query syntax
 
-Atlast passes the query to SQLite FTS5 using a prepared statement. Prepared
-statements prevent SQL injection, while FTS5 still interprets its own search
-operators. Invalid FTS5 syntax returns a search error.
+Atlast separates its filters from the query, then passes the remaining search
+text to SQLite FTS5 using a prepared statement. Prepared statements prevent SQL
+injection, while FTS5 still interprets its own search operators. Invalid FTS5
+syntax returns a search error.
 
 Common queries include:
 
@@ -288,17 +290,87 @@ This matches `connection` while excluding results that match `websocket`.
 
 This can match tokens such as `migrate`, `migrated`, and `migration`.
 
-### Search only paths or content
+### Atlast filters
 
-Both the normalized path and file content are indexed. FTS5 column filters can
-restrict a query:
+Atlast recognizes three deterministic filters inside the query argument:
+
+```text
+path:<substring>
+ext:<extension>
+modified:<days>d
+```
+
+Filters are removed before the remaining text is sent to FTS5. All supplied
+filters must match the same document.
 
 ```powershell
-.\atlast.exe search "path:network"
+.\atlast.exe search "timeout path:backend ext:py modified:30d"
+```
+
+This searches for `timeout`, keeps paths containing `backend`, keeps `.py`
+files, and keeps files modified during the last 30 days.
+
+#### Path filter
+
+```powershell
+.\atlast.exe search "migration path:database"
+```
+
+`path:` performs a literal, case-insensitive substring check against the
+normalized absolute path. It is not tokenized and has no wildcard syntax.
+
+Quote a path fragment containing spaces inside the complete query:
+
+```powershell
+.\atlast.exe search 'migration path:"design notes"'
+```
+
+#### Extension filter
+
+```powershell
+.\atlast.exe search "connection ext:cpp"
+.\atlast.exe search "connection ext:.CPP"
+```
+
+The leading dot is optional and matching is case-insensitive. The value must
+contain only letters and digits. It matches the final extension, so `ext:ts`
+also matches a filename ending in `.d.ts`.
+
+#### Modified-date filter
+
+```powershell
+.\atlast.exe search "authentication modified:7d"
+```
+
+`modified:7d` means "modified within the last seven days." The supported range
+is `1d` through `36500d`. Atlast compares against the modification timestamp
+stored during the last indexing run. Re-index changed files before relying on
+this filter.
+
+#### Filter rules
+
+- Search text is required; a filter-only query such as `ext:py` is rejected.
+- Each filter may appear at most once.
+- Filters may appear in any order and are combined with `AND`.
+- Filter names are lowercase: `path:`, `ext:`, and `modified:`.
+- Filter values are bound to prepared SQL statements.
+
+FTS phrases and operators still work alongside filters:
+
+```powershell
+.\atlast.exe search '"connection timeout" ext:log modified:7d'
+```
+
+### Search only content
+
+Both normalized paths and file content are indexed. The `path:` name is now an
+Atlast substring filter. FTS5's `content:` column filter remains available:
+
+```powershell
 .\atlast.exe search "content:timeout"
 ```
 
-The path filter searches tokenized path text, not shell glob patterns.
+This prevents a filename token from satisfying the full-text part of the query.
 
 ## Files that are indexed
 
@@ -479,7 +551,9 @@ tree and verifies:
 6. Changed content replaces old searchable content.
 7. A deleted file is removed from the index.
 8. New content is searchable with a result limit.
-9. An invalid result limit returns command-line error code `2`.
+9. Path, extension, recent-modification, and combined filters narrow results.
+10. Invalid filters and filter-only searches return command-line error code `2`.
+11. An invalid result limit returns command-line error code `2`.
 
 The test deletes and recreates only its own `build/test-data` directory. It does
 not read or modify personal documents.
@@ -586,7 +660,8 @@ documents. The index can always be rebuilt from the original files.
 - No filesystem watcher; users rerun `index` to observe changes.
 - No semantic or vector search.
 - No natural-language answer generation.
-- No query aliases such as `type:cpp` or `modified:30d`.
+- No Boolean expressions, negation, or ranges for Atlast filters; one `path:`,
+  `ext:`, and `modified:Nd` value may be combined with full-text search.
 - No per-root deletion command.
 - One database writer at a time.
 - Files are read completely into memory, bounded by the 10 MiB limit.
@@ -602,17 +677,15 @@ These are deliberate MVP boundaries, not partially implemented features.
 The next milestones should preserve the working CLI and add one measurable
 capability at a time:
 
-1. **Query filters:** add deterministic `path:`, extension, and modified-date
-   filters outside FTS syntax.
-2. **Git history:** invoke the Git CLI and index commit, path, and blob content.
+1. **Git history:** invoke the Git CLI and index commit, path, and blob content.
    Reuse Git's object store instead of creating another content-addressed store.
-3. **Provenance:** show the row, file version, query terms, and scoring factors
+2. **Provenance:** show the row, file version, query terms, and scoring factors
    responsible for each result.
-4. **Filesystem watching:** add live updates only after repeated manual indexing
+3. **Filesystem watching:** add live updates only after repeated manual indexing
    is proven inconvenient.
-5. **Document extraction:** add one format at a time behind real sample files
+4. **Document extraction:** add one format at a time behind real sample files
    and tests.
-6. **Semantic retrieval:** benchmark lexical search first, then add embeddings
+5. **Semantic retrieval:** benchmark lexical search first, then add embeddings
    only for queries that lexical search demonstrably misses.
 
 The product's intended differentiator is eventually time-aware, explainable

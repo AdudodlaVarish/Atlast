@@ -250,6 +250,15 @@ exact match against an entire column.
 A plain equality check asks whether the complete value equals a string. A
 full-text search can find `timeout` anywhere inside a long source file.
 
+### Search filter
+
+A search filter removes otherwise valid matches that do not meet a predictable
+condition. For example, `ext:py` keeps only Python files and `modified:7d` keeps
+only files changed during the last seven days.
+
+Atlast parses filters itself instead of asking FTS5 to interpret them. This
+keeps path, extension, and date comparisons literal and deterministic.
+
 ### Token and tokenization
 
 A token is a searchable unit, usually a word. Tokenization turns text into
@@ -682,7 +691,7 @@ mistake.
 Read these files and functions in execution order:
 
 1. `main.cpp`: `main`
-2. `cli.cpp`: `run`, then `parse_options`
+2. `cli.cpp`: `run`, `parse_options`, then `parse_search_request`
 3. `indexer.cpp`: `index_directory` and its local helpers
 4. `search.cpp`: `search`
 5. `database.cpp`: `open`, `ensure_schema`, `prepare`, `bind_text`, and
@@ -729,6 +738,30 @@ without exceptions. The function rejects values outside 1 through 100.
 
 The `allow_limit` parameter prevents an index command from silently accepting a
 search-only option.
+
+### `parse_search_request`
+
+`parse_search_request` separates Atlast filters from FTS5 search text. Given:
+
+```text
+timeout path:backend ext:py modified:30d
+```
+
+it produces a `SearchRequest` containing:
+
+```text
+text          = timeout
+path          = backend
+extension     = py
+modified_days = 30
+```
+
+The parser keeps quoted FTS phrases together, accepts a quoted path containing
+spaces, normalizes extensions to lowercase, validates day ranges, rejects
+duplicate filters, and requires at least one full-text term.
+
+`SearchRequest` is a plain struct rather than a class hierarchy because it only
+transports four validated values from `cli.cpp` to `search.cpp`.
 
 ### `path_text`
 
@@ -853,15 +886,22 @@ failure does not cause the stale cleanup to delete its older searchable row.
 
 ### `search`
 
-The search flow is smaller:
+The search flow is:
 
-1. Reject an empty query.
+1. Receive a validated `SearchRequest` from the CLI.
 2. Open the database and ensure its schema.
-3. Prepare the FTS query.
-4. Bind query text and result limit.
-5. Step through matching rows.
-6. Print each normalized path and highlighted snippet.
-7. Print `No results.` when no rows match.
+3. Start with the fixed FTS query.
+4. Append trusted SQL clauses only for filters that are present.
+5. Bind search text, filter values, timestamp threshold, and result limit.
+6. Step through matching rows.
+7. Print each normalized path and highlighted snippet.
+8. Print `No results.` when no rows match.
+
+The SQL text is assembled only from fixed strings written in `search.cpp`.
+User-provided values always occupy `?` placeholders and are bound separately.
+The path check uses a case-insensitive literal substring comparison, extension
+matching checks the filename ending, and the modified filter compares stored
+filesystem-clock values with a threshold calculated from the current time.
 
 SQLite returns one row each time `sqlite3_step` returns `SQLITE_ROW`. It returns
 `SQLITE_DONE` when iteration is complete. Any other result indicates an error.
@@ -902,6 +942,10 @@ Examples include checking that:
 - The unsupported `.bin` file does not appear.
 - Files inside ignored dependency and generated directories do not appear.
 - Files inside a custom-named Python virtual environment do not appear.
+- Path and extension filters both accept and reject the expected documents.
+- A recent-modification filter finds a newly created fixture.
+- Combined filters apply all conditions together.
+- Invalid and filter-only searches return exit code `2`.
 - The next run reports unchanged files.
 - Old content disappears after replacement.
 - New content becomes searchable.
@@ -1070,6 +1114,7 @@ Before accepting a change, ask:
 | Database | Structured data stored and queried together. |
 | Dependency | External code used by the project. |
 | Exit code | Number reporting command success or failure. |
+| Filter | Condition that narrows otherwise valid search results. |
 | FTS5 | SQLite's full-text-search extension. |
 | Index | Data structure that speeds up lookups. |
 | Incremental | Processing changes rather than everything again. |

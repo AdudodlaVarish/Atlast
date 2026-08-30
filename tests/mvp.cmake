@@ -52,6 +52,46 @@ if(NOT connection_search MATCHES "network.txt" OR
     message(FATAL_ERROR "Unexpected connection search:\n${connection_search}")
 endif()
 
+run_atlast(0 path_filter search "connection path:network" --db "${database}")
+if(NOT path_filter MATCHES "network.txt")
+    message(FATAL_ERROR "Path filter rejected the expected file:\n${path_filter}")
+endif()
+
+run_atlast(0 path_filter_miss search "connection path:migration" --db "${database}")
+if(NOT path_filter_miss MATCHES "No results")
+    message(FATAL_ERROR "Path filter accepted the wrong file:\n${path_filter_miss}")
+endif()
+
+run_atlast(0 extension_filter search "connection ext:.TXT" --db "${database}")
+if(NOT extension_filter MATCHES "network.txt")
+    message(FATAL_ERROR
+        "Extension filter rejected the expected file:\n${extension_filter}")
+endif()
+
+run_atlast(0 extension_filter_miss search "connection ext:md" --db "${database}")
+if(NOT extension_filter_miss MATCHES "No results")
+    message(FATAL_ERROR
+        "Extension filter accepted the wrong file:\n${extension_filter_miss}")
+endif()
+
+run_atlast(0 combined_filters search
+    "connection path:network ext:txt modified:1d" --db "${database}")
+if(NOT combined_filters MATCHES "network.txt")
+    message(FATAL_ERROR "Combined filters failed:\n${combined_filters}")
+endif()
+
+run_atlast(0 phrase_with_filter search
+    "\"connection timeout\" ext:txt" --db "${database}")
+if(NOT phrase_with_filter MATCHES "network.txt")
+    message(FATAL_ERROR "FTS phrase with filter failed:\n${phrase_with_filter}")
+endif()
+
+run_atlast(2 invalid_extension search "connection ext:" --db "${database}")
+run_atlast(2 invalid_modified search "connection modified:recent" --db "${database}")
+run_atlast(2 filters_without_text search "ext:txt" --db "${database}")
+run_atlast(2 duplicate_filter search
+    "connection path:network path:source" --db "${database}")
+
 run_atlast(0 ignored_search search "generateddependencysecret" --db "${database}")
 if(NOT ignored_search MATCHES "No results")
     message(FATAL_ERROR "Ignored directory content was indexed:\n${ignored_search}")

@@ -1,13 +1,23 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
+#include <string>
 #include <string_view>
 
 namespace atlast {
 
+struct SearchRequest {
+    std::string text;
+    std::string path;
+    std::string extension;
+    std::optional<int> modified_days;
+};
+
 int run(int argc, char* argv[]);
 int index_directory(const std::filesystem::path& root,
                     std::string_view database_path);
-int search(std::string_view query, std::string_view database_path, int limit);
+int search(const SearchRequest& request, std::string_view database_path,
+           int limit);
 
 }  // namespace atlast
