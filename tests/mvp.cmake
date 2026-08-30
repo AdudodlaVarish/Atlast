@@ -14,6 +14,18 @@ file(WRITE "${source}/migration.md"
     "# Database migration\nThe migration uses a shadow table.\n")
 file(WRITE "${source}/ignored.bin" "connection timeout")
 
+foreach(ignored_directory IN ITEMS node_modules .git .next dist build coverage)
+    file(MAKE_DIRECTORY "${source}/${ignored_directory}")
+    file(WRITE "${source}/${ignored_directory}/ignored.txt"
+        "generateddependencysecret")
+endforeach()
+
+file(MAKE_DIRECTORY "${source}/custom_python_environment")
+file(WRITE "${source}/custom_python_environment/pyvenv.cfg"
+    "home = /python\n")
+file(WRITE "${source}/custom_python_environment/dependency.py"
+    "generateddependencysecret")
+
 function(run_atlast expected_result output_variable)
     execute_process(
         COMMAND "${ATLAST_EXECUTABLE}" ${ARGN}
@@ -38,6 +50,11 @@ run_atlast(0 connection_search search "connection timeout" --db "${database}")
 if(NOT connection_search MATCHES "network.txt" OR
    connection_search MATCHES "ignored.bin")
     message(FATAL_ERROR "Unexpected connection search:\n${connection_search}")
+endif()
+
+run_atlast(0 ignored_search search "generateddependencysecret" --db "${database}")
+if(NOT ignored_search MATCHES "No results")
+    message(FATAL_ERROR "Ignored directory content was indexed:\n${ignored_search}")
 endif()
 
 run_atlast(0 second_index index "${source}" --db "${database}")

@@ -39,6 +39,9 @@ constexpr std::array supported_extensions{
     ".text", ".toml", ".ts",    ".tsv",  ".txt",  ".xml",  ".yaml",
     ".yml"};
 
+constexpr std::array ignored_directories{
+    ".git", ".next", "build", "coverage", "dist", "node_modules"};
+
 using Database = std::unique_ptr<sqlite3, decltype(&sqlite3_close)>;
 using Statement = std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)>;
 
@@ -86,6 +89,21 @@ bool supported_file(const fs::path& path) {
                    });
     return std::ranges::find(supported_extensions, extension) !=
            supported_extensions.end();
+}
+
+bool ignored_directory(const fs::path& path) {
+    std::string name = path.filename().string();
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char character) {
+                       return static_cast<char>(std::tolower(character));
+                   });
+    if (std::ranges::find(ignored_directories, name) !=
+        ignored_directories.end()) {
+        return true;
+    }
+
+    std::error_code error;
+    return fs::is_regular_file(path / "pyvenv.cfg", error) && !error;
 }
 
 std::optional<std::string> read_file(const fs::path& path,
@@ -326,9 +344,20 @@ int index_directory(const fs::path& requested_root,
     };
 
     try {
-        for (const fs::directory_entry& entry : fs::recursive_directory_iterator(
-                 root_path, fs::directory_options::skip_permission_denied)) {
+        for (fs::recursive_directory_iterator iterator(
+                 root_path, fs::directory_options::skip_permission_denied),
+             end;
+             iterator != end; ++iterator) {
+            const fs::directory_entry& entry = *iterator;
             std::error_code entry_error;
+
+            if (entry.is_directory(entry_error)) {
+                if (!entry_error && ignored_directory(entry.path())) {
+                    iterator.disable_recursion_pending();
+                }
+                continue;
+            }
+
             if (!entry.is_regular_file(entry_error) || entry_error ||
                 !supported_file(entry.path())) {
                 continue;

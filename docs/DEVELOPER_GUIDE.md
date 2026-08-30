@@ -148,7 +148,11 @@ Traversal means visiting entries in a directory. Recursive traversal also
 enters child directories, their children, and so on.
 
 Atlast uses `std::filesystem::recursive_directory_iterator` to perform this
-walk.
+walk. When it encounters `.git`, `.next`, `build`, `coverage`, `dist`, or
+`node_modules`, it calls `disable_recursion_pending()` so the iterator does not
+enter that directory. It also checks directories for `pyvenv.cfg`, the standard
+marker created by Python's `venv` module. This detects custom names such as
+`my_venv` without maintaining a list of every possible environment name.
 
 ### Path normalization
 
@@ -782,12 +786,14 @@ are:
 5. Begin a database transaction.
 6. Prepare one reusable upsert statement and one reusable delete statement.
 7. Recursively visit supported files.
-8. Compare metadata and avoid rereading unchanged files.
-9. Read and validate changed files.
-10. Upsert eligible content.
-11. Remove database rows whose files disappeared.
-12. Commit or roll back database changes.
-13. Print statistics and return an exit code.
+8. Prune dependency and generated directories before entering them, including
+   custom-named Python environments detected by `pyvenv.cfg`.
+9. Compare metadata and avoid rereading unchanged files.
+10. Read and validate changed files.
+11. Upsert eligible content.
+12. Remove database rows whose files disappeared.
+13. Commit or roll back database changes.
+14. Print statistics and return an exit code.
 
 Prepared statements are reset and rebound inside the loop rather than prepared
 again for every file. Preparing once reduces repeated SQL parsing work.
@@ -848,6 +854,8 @@ Examples include checking that:
 - The first run reports two indexed files.
 - Search output names `network.txt`.
 - The unsupported `.bin` file does not appear.
+- Files inside ignored dependency and generated directories do not appear.
+- Files inside a custom-named Python virtual environment do not appear.
 - The next run reports unchanged files.
 - Old content disappears after replacement.
 - New content becomes searchable.

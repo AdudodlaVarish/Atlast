@@ -312,6 +312,12 @@ Atlast currently accepts regular files with these case-insensitive extensions:
 
 Additional rules:
 
+- Directories named `.git`, `.next`, `build`, `coverage`, `dist`, or
+  `node_modules` are pruned during recursive traversal. Atlast does not inspect
+  their contents.
+- Any directory containing `pyvenv.cfg` is recognized as a Python virtual
+  environment and pruned, regardless of whether it is named `.venv`, `venv`,
+  `my_venv`, or something else.
 - Files larger than 10 MiB are skipped. The current implementation reads a
   complete file into memory before sending it to SQLite, so the limit bounds
   per-file memory use.
@@ -334,13 +340,18 @@ size for documents attributed to that root. Each discovered file follows this
 decision process:
 
 1. Ignore unsupported files.
-2. Read file metadata.
-3. Skip the content read when modification time and size match the stored row.
-4. Reject files over 10 MiB.
-5. Read changed or new files.
-6. Reject content containing a null byte.
-7. Insert or update the document using its normalized path as the unique key.
-8. After a complete traversal, delete stored paths no longer discovered.
+2. Avoid descending into ignored dependency and generated directories,
+   including Python environments detected through `pyvenv.cfg`.
+3. Read file metadata.
+4. Skip the content read when modification time and size match the stored row.
+5. Reject files over 10 MiB.
+6. Read changed or new files.
+7. Reject content containing a null byte.
+8. Insert or update the document using its normalized path as the unique key.
+9. After a complete traversal, delete stored paths no longer discovered.
+
+After upgrading from an earlier Atlast build, run `index` again on each root.
+The stale-record pass removes old rows that came from directories now ignored.
 
 Modification time plus size is a fast change detector, not a cryptographic
 guarantee. A program could theoretically rewrite a file with different content
@@ -461,12 +472,14 @@ tree and verifies:
 
 1. Two supported files are indexed.
 2. An unsupported `.bin` file is ignored.
-3. A multi-term query finds the expected file.
-4. A second index run reports both files as unchanged.
-5. Changed content replaces old searchable content.
-6. A deleted file is removed from the index.
-7. New content is searchable with a result limit.
-8. An invalid result limit returns command-line error code `2`.
+3. Dependency, generated, and custom-named Python virtual-environment
+   directories are not traversed or indexed.
+4. A multi-term query finds the expected file.
+5. A second index run reports both files as unchanged.
+6. Changed content replaces old searchable content.
+7. A deleted file is removed from the index.
+8. New content is searchable with a result limit.
+9. An invalid result limit returns command-line error code `2`.
 
 The test deletes and recreates only its own `build/test-data` directory. It does
 not read or modify personal documents.
