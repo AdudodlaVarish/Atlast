@@ -71,10 +71,52 @@ include CMakeFiles/atlast.dir/flags.make
 CMakeFiles/atlast.dir/codegen:
 .PHONY : CMakeFiles/atlast.dir/codegen
 
+CMakeFiles/atlast.dir/src/cli.cpp.obj: CMakeFiles/atlast.dir/flags.make
+CMakeFiles/atlast.dir/src/cli.cpp.obj: C:/Atlast/src/cli.cpp
+CMakeFiles/atlast.dir/src/cli.cpp.obj: CMakeFiles/atlast.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/atlast.dir/src/cli.cpp.obj"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/atlast.dir/src/cli.cpp.obj -MF CMakeFiles\atlast.dir\src\cli.cpp.obj.d -o CMakeFiles\atlast.dir\src\cli.cpp.obj -c C:\Atlast\src\cli.cpp
+
+CMakeFiles/atlast.dir/src/cli.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/atlast.dir/src/cli.cpp.i"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Atlast\src\cli.cpp > CMakeFiles\atlast.dir\src\cli.cpp.i
+
+CMakeFiles/atlast.dir/src/cli.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/atlast.dir/src/cli.cpp.s"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Atlast\src\cli.cpp -o CMakeFiles\atlast.dir\src\cli.cpp.s
+
+CMakeFiles/atlast.dir/src/database.cpp.obj: CMakeFiles/atlast.dir/flags.make
+CMakeFiles/atlast.dir/src/database.cpp.obj: C:/Atlast/src/database.cpp
+CMakeFiles/atlast.dir/src/database.cpp.obj: CMakeFiles/atlast.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/atlast.dir/src/database.cpp.obj"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/atlast.dir/src/database.cpp.obj -MF CMakeFiles\atlast.dir\src\database.cpp.obj.d -o CMakeFiles\atlast.dir\src\database.cpp.obj -c C:\Atlast\src\database.cpp
+
+CMakeFiles/atlast.dir/src/database.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/atlast.dir/src/database.cpp.i"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Atlast\src\database.cpp > CMakeFiles\atlast.dir\src\database.cpp.i
+
+CMakeFiles/atlast.dir/src/database.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/atlast.dir/src/database.cpp.s"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Atlast\src\database.cpp -o CMakeFiles\atlast.dir\src\database.cpp.s
+
+CMakeFiles/atlast.dir/src/indexer.cpp.obj: CMakeFiles/atlast.dir/flags.make
+CMakeFiles/atlast.dir/src/indexer.cpp.obj: C:/Atlast/src/indexer.cpp
+CMakeFiles/atlast.dir/src/indexer.cpp.obj: CMakeFiles/atlast.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/atlast.dir/src/indexer.cpp.obj"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/atlast.dir/src/indexer.cpp.obj -MF CMakeFiles\atlast.dir\src\indexer.cpp.obj.d -o CMakeFiles\atlast.dir\src\indexer.cpp.obj -c C:\Atlast\src\indexer.cpp
+
+CMakeFiles/atlast.dir/src/indexer.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/atlast.dir/src/indexer.cpp.i"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Atlast\src\indexer.cpp > CMakeFiles\atlast.dir\src\indexer.cpp.i
+
+CMakeFiles/atlast.dir/src/indexer.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/atlast.dir/src/indexer.cpp.s"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Atlast\src\indexer.cpp -o CMakeFiles\atlast.dir\src\indexer.cpp.s
+
 CMakeFiles/atlast.dir/src/main.cpp.obj: CMakeFiles/atlast.dir/flags.make
 CMakeFiles/atlast.dir/src/main.cpp.obj: C:/Atlast/src/main.cpp
 CMakeFiles/atlast.dir/src/main.cpp.obj: CMakeFiles/atlast.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/atlast.dir/src/main.cpp.obj"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/atlast.dir/src/main.cpp.obj"
 	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/atlast.dir/src/main.cpp.obj -MF CMakeFiles\atlast.dir\src\main.cpp.obj.d -o CMakeFiles\atlast.dir\src\main.cpp.obj -c C:\Atlast\src\main.cpp
 
 CMakeFiles/atlast.dir/src/main.cpp.i: cmake_force
@@ -85,20 +127,42 @@ CMakeFiles/atlast.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/atlast.dir/src/main.cpp.s"
 	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Atlast\src\main.cpp -o CMakeFiles\atlast.dir\src\main.cpp.s
 
+CMakeFiles/atlast.dir/src/search.cpp.obj: CMakeFiles/atlast.dir/flags.make
+CMakeFiles/atlast.dir/src/search.cpp.obj: C:/Atlast/src/search.cpp
+CMakeFiles/atlast.dir/src/search.cpp.obj: CMakeFiles/atlast.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/atlast.dir/src/search.cpp.obj"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/atlast.dir/src/search.cpp.obj -MF CMakeFiles\atlast.dir\src\search.cpp.obj.d -o CMakeFiles\atlast.dir\src\search.cpp.obj -c C:\Atlast\src\search.cpp
+
+CMakeFiles/atlast.dir/src/search.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/atlast.dir/src/search.cpp.i"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E C:\Atlast\src\search.cpp > CMakeFiles\atlast.dir\src\search.cpp.i
+
+CMakeFiles/atlast.dir/src/search.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/atlast.dir/src/search.cpp.s"
+	C:\msys64\ucrt64\bin\g++.exe $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S C:\Atlast\src\search.cpp -o CMakeFiles\atlast.dir\src\search.cpp.s
+
 # Object files for target atlast
 atlast_OBJECTS = \
-"CMakeFiles/atlast.dir/src/main.cpp.obj"
+"CMakeFiles/atlast.dir/src/cli.cpp.obj" \
+"CMakeFiles/atlast.dir/src/database.cpp.obj" \
+"CMakeFiles/atlast.dir/src/indexer.cpp.obj" \
+"CMakeFiles/atlast.dir/src/main.cpp.obj" \
+"CMakeFiles/atlast.dir/src/search.cpp.obj"
 
 # External object files for target atlast
 atlast_EXTERNAL_OBJECTS =
 
+atlast.exe: CMakeFiles/atlast.dir/src/cli.cpp.obj
+atlast.exe: CMakeFiles/atlast.dir/src/database.cpp.obj
+atlast.exe: CMakeFiles/atlast.dir/src/indexer.cpp.obj
 atlast.exe: CMakeFiles/atlast.dir/src/main.cpp.obj
+atlast.exe: CMakeFiles/atlast.dir/src/search.cpp.obj
 atlast.exe: CMakeFiles/atlast.dir/build.make
 atlast.exe: C:/msys64/ucrt64/lib/libsqlite3.dll.a
 atlast.exe: CMakeFiles/atlast.dir/linkLibs.rsp
 atlast.exe: CMakeFiles/atlast.dir/objects1.rsp
 atlast.exe: CMakeFiles/atlast.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable atlast.exe"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable atlast.exe"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles\atlast.dir\link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

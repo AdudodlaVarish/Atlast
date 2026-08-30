@@ -502,6 +502,78 @@ ContinuousSubmit/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\ContinuousSubmit.dir\build.make CMakeFiles/ContinuousSubmit.dir/build
 .PHONY : ContinuousSubmit/fast
 
+src/cli.obj: src/cli.cpp.obj
+.PHONY : src/cli.obj
+
+# target to build an object file
+src/cli.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/cli.cpp.obj
+.PHONY : src/cli.cpp.obj
+
+src/cli.i: src/cli.cpp.i
+.PHONY : src/cli.i
+
+# target to preprocess a source file
+src/cli.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/cli.cpp.i
+.PHONY : src/cli.cpp.i
+
+src/cli.s: src/cli.cpp.s
+.PHONY : src/cli.s
+
+# target to generate assembly for a file
+src/cli.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/cli.cpp.s
+.PHONY : src/cli.cpp.s
+
+src/database.obj: src/database.cpp.obj
+.PHONY : src/database.obj
+
+# target to build an object file
+src/database.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/database.cpp.obj
+.PHONY : src/database.cpp.obj
+
+src/database.i: src/database.cpp.i
+.PHONY : src/database.i
+
+# target to preprocess a source file
+src/database.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/database.cpp.i
+.PHONY : src/database.cpp.i
+
+src/database.s: src/database.cpp.s
+.PHONY : src/database.s
+
+# target to generate assembly for a file
+src/database.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/database.cpp.s
+.PHONY : src/database.cpp.s
+
+src/indexer.obj: src/indexer.cpp.obj
+.PHONY : src/indexer.obj
+
+# target to build an object file
+src/indexer.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/indexer.cpp.obj
+.PHONY : src/indexer.cpp.obj
+
+src/indexer.i: src/indexer.cpp.i
+.PHONY : src/indexer.i
+
+# target to preprocess a source file
+src/indexer.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/indexer.cpp.i
+.PHONY : src/indexer.cpp.i
+
+src/indexer.s: src/indexer.cpp.s
+.PHONY : src/indexer.s
+
+# target to generate assembly for a file
+src/indexer.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/indexer.cpp.s
+.PHONY : src/indexer.cpp.s
+
 src/main.obj: src/main.cpp.obj
 .PHONY : src/main.obj
 
@@ -525,6 +597,30 @@ src/main.s: src/main.cpp.s
 src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
+
+src/search.obj: src/search.cpp.obj
+.PHONY : src/search.obj
+
+# target to build an object file
+src/search.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/search.cpp.obj
+.PHONY : src/search.cpp.obj
+
+src/search.i: src/search.cpp.i
+.PHONY : src/search.i
+
+# target to preprocess a source file
+src/search.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/search.cpp.i
+.PHONY : src/search.cpp.i
+
+src/search.s: src/search.cpp.s
+.PHONY : src/search.s
+
+# target to generate assembly for a file
+src/search.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/src/search.cpp.s
+.PHONY : src/search.cpp.s
 
 # Help Target
 help:
@@ -564,9 +660,21 @@ help:
 	@echo ... NightlyTest
 	@echo ... NightlyUpdate
 	@echo ... atlast
+	@echo ... src/cli.obj
+	@echo ... src/cli.i
+	@echo ... src/cli.s
+	@echo ... src/database.obj
+	@echo ... src/database.i
+	@echo ... src/database.s
+	@echo ... src/indexer.obj
+	@echo ... src/indexer.i
+	@echo ... src/indexer.s
 	@echo ... src/main.obj
 	@echo ... src/main.i
 	@echo ... src/main.s
+	@echo ... src/search.obj
+	@echo ... src/search.i
+	@echo ... src/search.s
 .PHONY : help
 
 

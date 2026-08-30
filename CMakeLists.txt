@@ -4,7 +4,13 @@ project(Atlast LANGUAGES CXX)
 
 find_package(SQLite3 REQUIRED)
 
-add_executable(atlast src/main.cpp)
+add_executable(atlast
+    src/cli.cpp
+    src/database.cpp
+    src/indexer.cpp
+    src/main.cpp
+    src/search.cpp
+)
 
 target_compile_features(atlast PRIVATE cxx_std_23)
 set_target_properties(atlast PROPERTIES CXX_EXTENSIONS OFF)

@@ -112,12 +112,12 @@ clean: CMakeFiles/ContinuousSubmit.dir/clean
 CMakeFiles/atlast.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=1,2 "Built target atlast"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=1,2,3,4,5,6 "Built target atlast"
 .PHONY : CMakeFiles/atlast.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/atlast.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Atlast\build\CMakeFiles 2
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\Atlast\build\CMakeFiles 6
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 CMakeFiles/atlast.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start C:\Atlast\build\CMakeFiles 0
 .PHONY : CMakeFiles/atlast.dir/rule
@@ -129,7 +129,7 @@ atlast: CMakeFiles/atlast.dir/rule
 # codegen rule for target.
 CMakeFiles/atlast.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\atlast.dir\build.make CMakeFiles/atlast.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=1,2 "Finished codegen for target atlast"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=C:\Atlast\build\CMakeFiles --progress-num=1,2,3,4,5,6 "Finished codegen for target atlast"
 .PHONY : CMakeFiles/atlast.dir/codegen
 
 # clean rule for target.

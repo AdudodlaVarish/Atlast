@@ -27,7 +27,7 @@ unchanged. Atlast only reads them.
 ### Source code
 
 Source code is human-readable text written in a programming language. Atlast's
-main source file is `src/main.cpp`, written in C++.
+source files live under `src/` and are written in C++.
 
 ### Compiler
 
@@ -38,6 +38,10 @@ Input:
 
 ```text
 src/main.cpp
+src/cli.cpp
+src/indexer.cpp
+src/search.cpp
+src/database.cpp
 ```
 
 Output after compilation and linking:
@@ -73,7 +77,7 @@ not libraries shipped as part of Atlast's source.
 CMake is a build-system generator. It reads `CMakeLists.txt` and creates files
 for another build tool, such as MinGW Make or Ninja.
 
-CMake does not normally compile `main.cpp` itself. The flow is:
+CMake does not normally compile C++ source itself. The flow is:
 
 ```text
 CMakeLists.txt -> CMake -> generated build files -> Make/Ninja -> compiler
@@ -371,17 +375,33 @@ ctest --test-dir C:\Atlast\build --output-on-failure
 
 ## Repository tour
 
-Atlast has four files that define product behavior:
+Atlast keeps each runtime responsibility in a focused source file:
 
 ```text
 CMakeLists.txt
+src/atlast.hpp
+src/database.hpp
 src/main.cpp
+src/cli.cpp
+src/indexer.cpp
+src/search.cpp
+src/database.cpp
 tests/mvp.cmake
 README.md
 ```
 
-This guide is the fifth documentation file. Generated files under `build/` are
-not source code and should not be edited manually.
+The source-file responsibilities are:
+
+- `main.cpp`: process entry point only.
+- `cli.cpp`: command-line help, validation, and routing.
+- `indexer.cpp`: crawling, filtering, file reading, and incremental updates.
+- `search.cpp`: FTS5 queries and result formatting.
+- `database.cpp`: SQLite connection, schema, statements, and binding.
+- `atlast.hpp`: declarations shared by top-level features.
+- `database.hpp`: declarations shared by SQLite consumers.
+
+Generated files under `build/` are not source code and should not be edited
+manually.
 
 ### `CMakeLists.txt`
 
@@ -410,11 +430,18 @@ with an error if SQLite is unavailable. Continuing would only move the failure
 to compilation or linking and make the message less clear.
 
 ```cmake
-add_executable(atlast src/main.cpp)
+add_executable(atlast
+    src/cli.cpp
+    src/database.cpp
+    src/indexer.cpp
+    src/main.cpp
+    src/search.cpp
+)
 ```
 
-This creates an executable target named `atlast` from `src/main.cpp`. A target
-is CMake's representation of something it can build.
+This creates an executable target named `atlast` from five implementation
+files. A target is CMake's representation of something it can build. Headers do
+not need to be listed for compilation because implementation files include them.
 
 ```cmake
 target_compile_features(atlast PRIVATE cxx_std_23)
@@ -455,7 +482,7 @@ The test is registered only when testing is enabled. CMake passes the exact
 path of the built executable and a disposable test directory to
 `tests/mvp.cmake`.
 
-## C++ foundations used in `main.cpp`
+## C++ foundations used in the source files
 
 ### Header files and `#include`
 
@@ -470,6 +497,16 @@ elsewhere.
 
 Angle brackets mean the header comes from the compiler, standard library, or a
 configured dependency rather than from the current source directory.
+
+Project headers use quotes:
+
+```cpp
+#include "atlast.hpp"
+#include "database.hpp"
+```
+
+`#pragma once` at the top of each project header prevents the same declarations
+from being processed repeatedly within one translation unit.
 
 ### Namespace
 
@@ -490,8 +527,8 @@ namespace {
 }
 ```
 
-makes its names private to `main.cpp`. Other future source files cannot
-accidentally depend on these internal details.
+makes its names private to the `.cpp` file containing it. Other source files
+cannot accidentally depend on those internal details.
 
 ### `constexpr`
 
@@ -562,7 +599,7 @@ automatically when the object leaves scope.
 Atlast defines:
 
 ```cpp
-using Database = std::unique_ptr<sqlite3, decltype(&sqlite3_close)>;
+using Connection = std::unique_ptr<sqlite3, decltype(&sqlite3_close)>;
 using Statement = std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)>;
 ```
 
@@ -640,17 +677,16 @@ unsigned-byte text pointer and C++'s `char` text.
 Casts deserve attention during review because an incorrect cast can hide a type
 mistake.
 
-## `main.cpp` function map
+## Source and function map
 
-Read these functions in this order rather than reading only from top to bottom:
+Read these files and functions in execution order:
 
-1. `main`
-2. `parse_options`
-3. `index_directory`
-4. `search`
-5. `open_database`
-6. `ensure_schema`
-7. The smaller helper functions
+1. `main.cpp`: `main`
+2. `cli.cpp`: `run`, then `parse_options`
+3. `indexer.cpp`: `index_directory` and its local helpers
+4. `search.cpp`: `search`
+5. `database.cpp`: `open`, `ensure_schema`, `prepare`, `bind_text`, and
+   `execute`
 
 This order follows the program's decisions from user input toward lower-level
 details.
@@ -669,9 +705,19 @@ int main(int argc, char* argv[])
 - `argv[1]` is normally `index`, `search`, or `--help`.
 - `argv[2]` is the directory or query.
 
-`main` handles help, validates the minimum argument count, parses options, and
-routes to either `index_directory` or `search`. It does not crawl files or write
-SQL itself. This keeps command routing visible in one place.
+`main` performs one handoff:
+
+```cpp
+return atlast::run(argc, argv);
+```
+
+The operating-system entry point therefore contains no application logic.
+
+### `run`
+
+`run`, in `cli.cpp`, handles help, validates the minimum argument count, parses
+options, and routes to either `index_directory` or `search`. It does not crawl
+files or write SQL itself. This keeps command routing visible in one place.
 
 ### `parse_options`
 
@@ -720,13 +766,13 @@ and bytes-read count disagree.
 The caller checks the 10 MiB limit before calling this function, so the
 allocation is bounded.
 
-### `run_sql`
+### `database::execute`
 
-`run_sql` executes SQL that contains no user-provided values, such as schema
-creation and transaction commands. It prints SQLite's allocated error message
-and frees that message afterward.
+`database::execute` runs SQL that contains no user-provided values, such as
+schema creation and transaction commands. It prints SQLite's allocated error
+message and frees that message afterward.
 
-### `prepare` and `bind_text`
+### `database::prepare` and `database::bind_text`
 
 `prepare` compiles SQL into a reusable SQLite statement and puts the raw pointer
 inside the RAII `Statement` type.
@@ -734,7 +780,7 @@ inside the RAII `Statement` type.
 `bind_text` supplies text to one `?` placeholder. `SQLITE_TRANSIENT` tells
 SQLite to copy the bytes before the C++ value can disappear or change.
 
-### `open_database`
+### `database::open`
 
 This converts the path to text and opens SQLite with read, write, and create
 permissions. SQLite creates the file if necessary.
@@ -742,10 +788,10 @@ permissions. SQLite creates the file if necessary.
 The five-second busy timeout lets a short-lived competing database operation
 finish before Atlast reports that the database is locked.
 
-The function returns an empty `Database` smart pointer on failure and a managed
+The function returns an empty `Connection` smart pointer on failure and a managed
 connection on success.
 
-### `ensure_schema`
+### `database::ensure_schema`
 
 This creates every required database object with `IF NOT EXISTS`, making it safe
 to run whenever Atlast opens a database.
@@ -863,7 +909,7 @@ Examples include checking that:
 - An invalid limit returns exit code `2`.
 
 This test targets observable behavior instead of internal function details. A
-future refactor can reorganize `main.cpp` without rewriting the test if CLI
+future refactor can reorganize source files without rewriting the test if CLI
 behavior remains correct.
 
 ## Follow one file through the system
@@ -891,8 +937,9 @@ causes this sequence:
 1. `main` recognizes the `index` command.
 2. `parse_options` keeps the default database path unless `--db` is present.
 3. `index_directory` validates and normalizes `C:\Notes`.
-4. `open_database` opens or creates `atlast.db`.
-5. `ensure_schema` creates missing tables, FTS structures, and triggers.
+4. `database::open` opens or creates `atlast.db`.
+5. `database::ensure_schema` creates missing tables, FTS structures, and
+   triggers.
 6. The recursive iterator reaches `network.txt`.
 7. `supported_file` accepts `.txt`.
 8. Atlast reads metadata and sees whether the stored row is current.

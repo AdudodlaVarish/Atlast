@@ -491,18 +491,24 @@ Atlast/
 ├── .vscode/
 │   └── settings.json   # Disables configure-on-edit in VS Code.
 ├── src/
-│   └── main.cpp        # CLI, crawler, database, indexing, and search.
+│   ├── atlast.hpp      # Shared declarations for top-level operations.
+│   ├── cli.cpp         # Argument parsing and command routing.
+│   ├── database.cpp    # SQLite connection, schema, and statement helpers.
+│   ├── database.hpp    # Internal SQLite helper declarations.
+│   ├── indexer.cpp     # Filesystem crawling and incremental indexing.
+│   ├── main.cpp        # Minimal process entry point.
+│   └── search.cpp      # FTS5 query execution and result output.
 ├── tests/
 │   └── mvp.cmake       # End-to-end test with no test framework dependency.
 ├── CMakeLists.txt      # Build target, SQLite link, and CTest registration.
 └── README.md           # User, developer, and architecture documentation.
 ```
 
-The MVP remains in one C++ translation unit because the components are still
-small and tightly connected. Split it only when independent pieces become hard
-to navigate or test. Creating storage interfaces, factories, plugin APIs, or a
-directory of one-class files now would add structure without reducing present
-complexity.
+The C++ code is split by runtime responsibility. `main.cpp` delegates to the
+CLI, while indexing, searching, and SQLite details remain in focused translation
+units. The project deliberately avoids storage interfaces, factories, plugin
+APIs, and one-class-per-file scaffolding because each current responsibility has
+one concrete implementation.
 
 ## Troubleshooting
 

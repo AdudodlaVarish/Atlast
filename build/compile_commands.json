@@ -1,8 +1,32 @@
 [
 {
   "directory": "C:/Atlast/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe   -g -std=c++23 -o CMakeFiles\\atlast.dir\\src\\cli.cpp.obj -c C:\\Atlast\\src\\cli.cpp",
+  "file": "C:/Atlast/src/cli.cpp",
+  "output": "CMakeFiles/atlast.dir/src/cli.cpp.obj"
+},
+{
+  "directory": "C:/Atlast/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe   -g -std=c++23 -o CMakeFiles\\atlast.dir\\src\\database.cpp.obj -c C:\\Atlast\\src\\database.cpp",
+  "file": "C:/Atlast/src/database.cpp",
+  "output": "CMakeFiles/atlast.dir/src/database.cpp.obj"
+},
+{
+  "directory": "C:/Atlast/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe   -g -std=c++23 -o CMakeFiles\\atlast.dir\\src\\indexer.cpp.obj -c C:\\Atlast\\src\\indexer.cpp",
+  "file": "C:/Atlast/src/indexer.cpp",
+  "output": "CMakeFiles/atlast.dir/src/indexer.cpp.obj"
+},
+{
+  "directory": "C:/Atlast/build",
   "command": "C:\\msys64\\ucrt64\\bin\\g++.exe   -g -std=c++23 -o CMakeFiles\\atlast.dir\\src\\main.cpp.obj -c C:\\Atlast\\src\\main.cpp",
   "file": "C:/Atlast/src/main.cpp",
   "output": "CMakeFiles/atlast.dir/src/main.cpp.obj"
+},
+{
+  "directory": "C:/Atlast/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe   -g -std=c++23 -o CMakeFiles\\atlast.dir\\src\\search.cpp.obj -c C:\\Atlast\\src\\search.cpp",
+  "file": "C:/Atlast/src/search.cpp",
+  "output": "CMakeFiles/atlast.dir/src/search.cpp.obj"
 }
 ]
