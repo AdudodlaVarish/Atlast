@@ -1,19 +1,19 @@
-Start testing: Aug 30 00:09 Central Daylight Time
+Start testing: Aug 30 00:26 Central Daylight Time
 ----------------------------------------------------------
 1/1 Testing: atlast_mvp
 1/1 Test: atlast_mvp
 Command: "C:/msys64/ucrt64/bin/cmake.exe" "-DATLAST_EXECUTABLE=C:/Atlast/build/atlast.exe" "-DTEST_DIRECTORY=C:/Atlast/build/test-data" "-P" "C:/Atlast/tests/mvp.cmake"
 Directory: C:/Atlast/build
-"atlast_mvp" start time: Aug 30 00:09 Central Daylight Time
+"atlast_mvp" start time: Aug 30 00:26 Central Daylight Time
 Output:
 ----------------------------------------------------------
 -- Atlast MVP end-to-end test passed
 <end of output>
-Test time =   0.57 sec
+Test time =   1.01 sec
 ----------------------------------------------------------
 Test Passed.
-"atlast_mvp" end time: Aug 30 00:09 Central Daylight Time
-"atlast_mvp" time elapsed: 00:00:00
+"atlast_mvp" end time: Aug 30 00:26 Central Daylight Time
+"atlast_mvp" time elapsed: 00:00:01
 ----------------------------------------------------------
 
-End testing: Aug 30 00:09 Central Daylight Time
+End testing: Aug 30 00:26 Central Daylight Time
