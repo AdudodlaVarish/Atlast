@@ -68,6 +68,14 @@ bool ensure_schema(sqlite3* connection) {
             content  TEXT NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS sources (
+            root         TEXT PRIMARY KEY,
+            last_indexed INTEGER NOT NULL
+        );
+
+        INSERT OR IGNORE INTO sources(root, last_indexed)
+        SELECT DISTINCT root, 0 FROM documents;
+
         CREATE INDEX IF NOT EXISTS documents_root ON documents(root);
 
         CREATE VIRTUAL TABLE IF NOT EXISTS documents_fts USING fts5(

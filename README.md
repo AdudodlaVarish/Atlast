@@ -35,6 +35,7 @@ The current release provides:
 - Incremental indexing based on file modification time and size.
 - Replacement of changed content.
 - Removal of records for deleted files.
+- Listing and forgetting indexed source directories.
 - Detection and exclusion of likely binary files.
 - A configurable database path.
 - A configurable search-result limit.
@@ -209,6 +210,27 @@ The command returns a nonzero status when any file operation fails. Successfully
 processed files remain indexed, while a previously indexed file that cannot be
 read keeps its older database record. This favors preserving useful data over
 deleting it because of a temporary permissions or sharing error.
+
+### Sources
+
+```text
+atlast sources [--db <database>]
+```
+
+Lists each indexed directory with its current file count and last index time.
+Databases created by an older Atlast version show `unknown` until that source is
+indexed again.
+
+### Forget
+
+```text
+atlast forget <directory> [--db <database>]
+```
+
+Removes one indexed directory and its searchable records from the database.
+The original directory and files are not changed. The directory does not need
+to still exist on disk, but its path must identify the same normalized root used
+by `index`.
 
 ### Search
 
@@ -437,8 +459,18 @@ mistaking unvisited files for deleted files.
 
 ## Database design
 
-The database contains a normal content table and an FTS5 external-content
-table.
+The database contains source metadata, a normal content table, and an FTS5
+external-content table.
+
+```sql
+CREATE TABLE sources (
+    root         TEXT PRIMARY KEY,
+    last_indexed INTEGER NOT NULL
+);
+```
+
+`sources` stores one normalized root and its last index time. File counts are
+computed from `documents`, so no duplicate counter can drift out of sync.
 
 The normal table is conceptually:
 
@@ -554,6 +586,8 @@ tree and verifies:
 9. Path, extension, recent-modification, and combined filters narrow results.
 10. Invalid filters and filter-only searches return command-line error code `2`.
 11. An invalid result limit returns command-line error code `2`.
+12. Indexed sources report their file count and last index time.
+13. Forgetting a source removes its search records but leaves its files intact.
 
 The test deletes and recreates only its own `build/test-data` directory. It does
 not read or modify personal documents.
@@ -569,7 +603,7 @@ Atlast/
 │   ├── cli.cpp         # Argument parsing and command routing.
 │   ├── database.cpp    # SQLite connection, schema, and statement helpers.
 │   ├── database.hpp    # Internal SQLite helper declarations.
-│   ├── indexer.cpp     # Filesystem crawling and incremental indexing.
+│   ├── indexer.cpp     # Indexing and indexed-source management.
 │   ├── main.cpp        # Minimal process entry point.
 │   └── search.cpp      # FTS5 query execution and result output.
 ├── tests/

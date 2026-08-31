@@ -20,6 +20,8 @@ constexpr std::string_view usage = R"(Atlast - local full-text search
 Usage:
   atlast index <directory> [--db <database>]
   atlast search <query> [--limit <1-100>] [--db <database>]
+  atlast sources [--db <database>]
+  atlast forget <directory> [--db <database>]
   atlast --help
 
 Search filters:
@@ -192,20 +194,29 @@ bool parse_search_request(std::string_view input, SearchRequest& request) {
 }  // namespace
 
 int run(int argc, char* argv[]) {
-    if (argc == 2 &&
-        (std::string_view{argv[1]} == "--help" ||
-         std::string_view{argv[1]} == "help")) {
+    if (argc < 2) {
+        std::cerr << usage;
+        return 2;
+    }
+
+    const std::string_view command = argv[1];
+    if (argc == 2 && (command == "--help" || command == "help")) {
         std::cout << usage;
         return 0;
+    }
+
+    Options options;
+    if (command == "sources") {
+        if (!parse_options(argc, argv, 2, false, options)) {
+            return 2;
+        }
+        return list_sources(options.database);
     }
 
     if (argc < 3) {
         std::cerr << usage;
         return 2;
     }
-
-    const std::string_view command = argv[1];
-    Options options;
 
     if (command == "index") {
         if (!parse_options(argc, argv, 3, false, options)) {
@@ -223,6 +234,13 @@ int run(int argc, char* argv[]) {
             return 2;
         }
         return search(request, options.database, options.limit);
+    }
+
+    if (command == "forget") {
+        if (!parse_options(argc, argv, 3, false, options)) {
+            return 2;
+        }
+        return forget_directory(argv[2], options.database);
     }
 
     std::cerr << "Unknown command: " << command << '\n' << usage;

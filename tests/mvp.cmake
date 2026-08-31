@@ -46,6 +46,13 @@ if(NOT first_index MATCHES "Indexed: 2")
     message(FATAL_ERROR "Expected two indexed files:\n${first_index}")
 endif()
 
+run_atlast(0 sources_output sources --db "${database}")
+if(NOT sources_output MATCHES "Root: .*source" OR
+   NOT sources_output MATCHES "Files: 2" OR
+   NOT sources_output MATCHES "Last indexed: [0-9]")
+    message(FATAL_ERROR "Expected indexed source details:\n${sources_output}")
+endif()
+
 run_atlast(0 connection_search search "connection timeout" --db "${database}")
 if(NOT connection_search MATCHES "network.txt" OR
    connection_search MATCHES "ignored.bin")
@@ -123,5 +130,23 @@ if(NOT new_search MATCHES "network.txt")
 endif()
 
 run_atlast(2 invalid_limit search "hummingbird" --limit 0 --db "${database}")
+
+run_atlast(0 forget_output forget "${source}" --db "${database}")
+if(NOT forget_output MATCHES "Removed: 1" OR
+   NOT EXISTS "${source}/network.txt")
+    message(FATAL_ERROR "Forget removed the wrong data:\n${forget_output}")
+endif()
+
+run_atlast(0 empty_sources sources --db "${database}")
+if(NOT empty_sources MATCHES "No indexed sources")
+    message(FATAL_ERROR "Forgotten source is still listed:\n${empty_sources}")
+endif()
+
+run_atlast(0 forgotten_search search "hummingbird" --db "${database}")
+if(NOT forgotten_search MATCHES "No results")
+    message(FATAL_ERROR "Forgotten content is still searchable:\n${forgotten_search}")
+endif()
+
+run_atlast(1 missing_source forget "${source}" --db "${database}")
 
 message(STATUS "Atlast MVP end-to-end test passed")

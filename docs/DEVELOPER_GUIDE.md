@@ -468,7 +468,7 @@ builds because of an accidental GCC-only language extension would be less
 portable.
 
 ```cmake
-target_link_libraries(atlast PRIVATE SQLite3::SQLite3)
+target_link_libraries(atlast PRIVATE SQLite::SQLite3)
 ```
 
 This links SQLite. The imported target also carries SQLite's required include
@@ -692,7 +692,8 @@ Read these files and functions in execution order:
 
 1. `main.cpp`: `main`
 2. `cli.cpp`: `run`, `parse_options`, then `parse_search_request`
-3. `indexer.cpp`: `index_directory` and its local helpers
+3. `indexer.cpp`: `index_directory`, `list_sources`, `forget_directory`, and
+   their local helpers
 4. `search.cpp`: `search`
 5. `database.cpp`: `open`, `ensure_schema`, `prepare`, `bind_text`, and
    `execute`
@@ -711,8 +712,8 @@ int main(int argc, char* argv[])
 - `argc` is the number of command-line strings.
 - `argv` is the array of those strings.
 - `argv[0]` is the executable name.
-- `argv[1]` is normally `index`, `search`, or `--help`.
-- `argv[2]` is the directory or query.
+- `argv[1]` is normally `index`, `search`, `sources`, `forget`, or `--help`.
+- `argv[2]` is the required directory or query for commands that need one.
 
 `main` performs one handoff:
 
@@ -724,9 +725,10 @@ The operating-system entry point therefore contains no application logic.
 
 ### `run`
 
-`run`, in `cli.cpp`, handles help, validates the minimum argument count, parses
-options, and routes to either `index_directory` or `search`. It does not crawl
-files or write SQL itself. This keeps command routing visible in one place.
+`run`, in `cli.cpp`, handles help, validates argument counts, parses options,
+and routes to `index_directory`, `search`, `list_sources`, or
+`forget_directory`. It does not crawl files or write SQL itself. This keeps
+command routing visible in one place.
 
 ### `parse_options`
 
@@ -832,11 +834,15 @@ to run whenever Atlast opens a database.
 The function creates:
 
 1. `documents`, the authoritative rows.
-2. `documents_root`, a normal lookup index.
-3. `documents_fts`, the FTS5 search index.
-4. An insert trigger.
-5. A delete trigger.
-6. An update trigger.
+2. `sources`, one row per indexed root and its last index time.
+3. `documents_root`, a normal lookup index.
+4. `documents_fts`, the FTS5 search index.
+5. An insert trigger.
+6. A delete trigger.
+7. An update trigger.
+
+It also adds `sources` rows with an unknown timestamp for roots found in a
+database created by an older Atlast version.
 
 The FTS table uses `content = 'documents'`, called external-content mode. The
 normal table owns the original text while FTS5 owns its search structures.
@@ -871,8 +877,9 @@ are:
 10. Read and validate changed files.
 11. Upsert eligible content.
 12. Remove database rows whose files disappeared.
-13. Commit or roll back database changes.
-14. Print statistics and return an exit code.
+13. Record the root's last index time.
+14. Commit or roll back database changes.
+15. Print statistics and return an exit code.
 
 Prepared statements are reset and rebound inside the loop rather than prepared
 again for every file. Preparing once reduces repeated SQL parsing work.
@@ -883,6 +890,14 @@ complete traversal.
 
 When a read fails, the path is still discovered. Therefore, a temporary read
 failure does not cause the stale cleanup to delete its older searchable row.
+
+### `list_sources` and `forget_directory`
+
+`list_sources` joins `sources` to `documents`, counts current files per root,
+and formats the stored UTC index time with SQLite. `forget_directory` normalizes
+the requested root, then deletes its document and source rows in one
+transaction. Existing delete triggers remove the corresponding FTS entries;
+neither function modifies the original files.
 
 ### `search`
 

@@ -157,6 +157,7 @@ int index_directory(const fs::path& requested_root,
 
     database::Statement upsert{nullptr, sqlite3_finalize};
     database::Statement remove{nullptr, sqlite3_finalize};
+    database::Statement update_source{nullptr, sqlite3_finalize};
     if (!database::prepare(connection.get(), R"sql(
             INSERT INTO documents(root, path, modified, size, content)
             VALUES (?, ?, ?, ?, ?)
@@ -168,7 +169,14 @@ int index_directory(const fs::path& requested_root,
         )sql",
                            upsert) ||
         !database::prepare(connection.get(),
-                           "DELETE FROM documents WHERE path = ?", remove)) {
+                           "DELETE FROM documents WHERE path = ?", remove) ||
+        !database::prepare(connection.get(), R"sql(
+            INSERT INTO sources(root, last_indexed)
+            VALUES (?, CAST(strftime('%s', 'now') AS INTEGER))
+            ON CONFLICT(root) DO UPDATE SET
+                last_indexed = excluded.last_indexed
+        )sql",
+                           update_source)) {
         database::execute(connection.get(), "ROLLBACK");
         return 1;
     }
@@ -317,6 +325,14 @@ int index_directory(const fs::path& requested_root,
         return 1;
     }
 
+    if (!database::bind_text(update_source.get(), 1, root) ||
+        sqlite3_step(update_source.get()) != SQLITE_DONE) {
+        std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                  << '\n';
+        database::execute(connection.get(), "ROLLBACK");
+        return 1;
+    }
+
     if (!database::execute(connection.get(), "COMMIT")) {
         database::execute(connection.get(), "ROLLBACK");
         return 1;
@@ -330,6 +346,99 @@ int index_directory(const fs::path& requested_root,
               << "Skipped: " << stats.skipped << '\n'
               << "Failed: " << stats.failed << '\n';
     return stats.failed == 0 ? 0 : 1;
+}
+
+int list_sources(std::string_view database_path) {
+    database::Connection connection = database::open(database_path);
+    if (!connection || !database::ensure_schema(connection.get())) {
+        return 1;
+    }
+
+    database::Statement statement{nullptr, sqlite3_finalize};
+    if (!database::prepare(connection.get(), R"sql(
+            SELECT s.root,
+                   count(d.id),
+                   CASE WHEN s.last_indexed = 0 THEN 'unknown'
+                        ELSE strftime('%Y-%m-%d %H:%M:%S UTC',
+                                      s.last_indexed, 'unixepoch')
+                   END
+            FROM sources AS s
+            LEFT JOIN documents AS d ON d.root = s.root
+            GROUP BY s.root, s.last_indexed
+            ORDER BY s.root
+        )sql",
+                           statement)) {
+        return 1;
+    }
+
+    bool found = false;
+    int result = SQLITE_ROW;
+    while ((result = sqlite3_step(statement.get())) == SQLITE_ROW) {
+        found = true;
+        std::cout << "Root: " << sqlite3_column_text(statement.get(), 0)
+                  << '\n'
+                  << "Files: " << sqlite3_column_int64(statement.get(), 1)
+                  << '\n'
+                  << "Last indexed: " << sqlite3_column_text(statement.get(), 2)
+                  << "\n\n";
+    }
+
+    if (result != SQLITE_DONE) {
+        std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                  << '\n';
+        return 1;
+    }
+    if (!found) {
+        std::cout << "No indexed sources.\n";
+    }
+    return 0;
+}
+
+int forget_directory(const fs::path& requested_root,
+                     std::string_view database_path) {
+    const std::string root = path_text(normalized_path(requested_root));
+    database::Connection connection = database::open(database_path);
+    if (!connection || !database::ensure_schema(connection.get()) ||
+        !database::execute(connection.get(), "BEGIN IMMEDIATE")) {
+        return 1;
+    }
+
+    database::Statement remove_documents{nullptr, sqlite3_finalize};
+    database::Statement remove_source{nullptr, sqlite3_finalize};
+    if (!database::prepare(connection.get(),
+                           "DELETE FROM documents WHERE root = ?",
+                           remove_documents) ||
+        !database::prepare(connection.get(),
+                           "DELETE FROM sources WHERE root = ?", remove_source) ||
+        !database::bind_text(remove_documents.get(), 1, root) ||
+        sqlite3_step(remove_documents.get()) != SQLITE_DONE) {
+        std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                  << '\n';
+        database::execute(connection.get(), "ROLLBACK");
+        return 1;
+    }
+    const int removed = sqlite3_changes(connection.get());
+
+    if (!database::bind_text(remove_source.get(), 1, root) ||
+        sqlite3_step(remove_source.get()) != SQLITE_DONE) {
+        std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                  << '\n';
+        database::execute(connection.get(), "ROLLBACK");
+        return 1;
+    }
+    if (sqlite3_changes(connection.get()) == 0) {
+        database::execute(connection.get(), "ROLLBACK");
+        std::cerr << "Source not indexed: " << root << '\n';
+        return 1;
+    }
+    if (!database::execute(connection.get(), "COMMIT")) {
+        database::execute(connection.get(), "ROLLBACK");
+        return 1;
+    }
+
+    std::cout << "Forgot: " << root << '\n'
+              << "Removed: " << removed << '\n';
+    return 0;
 }
 
 }  // namespace atlast

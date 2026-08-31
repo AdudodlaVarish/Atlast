@@ -14,7 +14,7 @@ add_executable(atlast
 
 target_compile_features(atlast PRIVATE cxx_std_23)
 set_target_properties(atlast PROPERTIES CXX_EXTENSIONS OFF)
-target_link_libraries(atlast PRIVATE SQLite3::SQLite3)
+target_link_libraries(atlast PRIVATE SQLite::SQLite3)
 
 include(CTest)
 
