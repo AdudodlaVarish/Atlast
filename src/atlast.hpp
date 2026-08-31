@@ -18,6 +18,7 @@ int run(int argc, char* argv[]);
 int index_directory(const std::filesystem::path& root,
                     std::string_view database_path);
 int list_sources(std::string_view database_path);
+int refresh_sources(std::string_view database_path);
 int forget_directory(const std::filesystem::path& root,
                      std::string_view database_path);
 int search(const SearchRequest& request, std::string_view database_path,

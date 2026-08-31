@@ -35,7 +35,7 @@ The current release provides:
 - Incremental indexing based on file modification time and size.
 - Replacement of changed content.
 - Removal of records for deleted files.
-- Listing and forgetting indexed source directories.
+- Listing, refreshing, and forgetting indexed source directories.
 - Detection and exclusion of likely binary files.
 - A configurable database path.
 - A configurable search-result limit.
@@ -220,6 +220,17 @@ atlast sources [--db <database>]
 Lists each indexed directory with its current file count and last index time.
 Databases created by an older Atlast version show `unknown` until that source is
 indexed again.
+
+### Refresh
+
+```text
+atlast refresh [--db <database>]
+```
+
+Incrementally re-indexes every directory listed by `sources`. A directory that
+cannot be read reports an error but does not stop the remaining directories or
+remove its stored records. The command returns a nonzero status if any source
+fails.
 
 ### Forget
 
@@ -587,7 +598,8 @@ tree and verifies:
 10. Invalid filters and filter-only searches return command-line error code `2`.
 11. An invalid result limit returns command-line error code `2`.
 12. Indexed sources report their file count and last index time.
-13. Forgetting a source removes its search records but leaves its files intact.
+13. Refresh updates changed content across two indexed sources.
+14. Forgetting a source removes its search records but leaves its files intact.
 
 The test deletes and recreates only its own `build/test-data` directory. It does
 not read or modify personal documents.
@@ -691,12 +703,11 @@ documents. The index can always be rebuilt from the original files.
 
 - Current files only; no Git history or time-travel search.
 - Plain-text formats only; no PDF, Office, archive, or image extraction.
-- No filesystem watcher; users rerun `index` to observe changes.
+- No filesystem watcher; users run `refresh` to observe changes.
 - No semantic or vector search.
 - No natural-language answer generation.
 - No Boolean expressions, negation, or ranges for Atlast filters; one `path:`,
   `ext:`, and `modified:Nd` value may be combined with full-text search.
-- No per-root deletion command.
 - One database writer at a time.
 - Files are read completely into memory, bounded by the 10 MiB limit.
 - Modification time and size are used instead of content hashes.

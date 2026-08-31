@@ -16,6 +16,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -392,6 +393,50 @@ int list_sources(std::string_view database_path) {
         std::cout << "No indexed sources.\n";
     }
     return 0;
+}
+
+int refresh_sources(std::string_view database_path) {
+    std::vector<std::string> roots;
+    {
+        database::Connection connection = database::open(database_path);
+        if (!connection || !database::ensure_schema(connection.get())) {
+            return 1;
+        }
+
+        database::Statement statement{nullptr, sqlite3_finalize};
+        if (!database::prepare(connection.get(),
+                               "SELECT root FROM sources ORDER BY root",
+                               statement)) {
+            return 1;
+        }
+
+        int result = SQLITE_ROW;
+        while ((result = sqlite3_step(statement.get())) == SQLITE_ROW) {
+            const auto* root = sqlite3_column_text(statement.get(), 0);
+            roots.emplace_back(reinterpret_cast<const char*>(root));
+        }
+        if (result != SQLITE_DONE) {
+            std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                      << '\n';
+            return 1;
+        }
+    }
+
+    if (roots.empty()) {
+        std::cout << "No indexed sources.\n";
+        return 0;
+    }
+
+    int status = 0;
+    for (std::size_t index = 0; index < roots.size(); ++index) {
+        if (index != 0) {
+            std::cout << '\n';
+        }
+        if (index_directory(roots[index], database_path) != 0) {
+            status = 1;
+        }
+    }
+    return status;
 }
 
 int forget_directory(const fs::path& requested_root,

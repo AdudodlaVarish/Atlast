@@ -21,6 +21,7 @@ Usage:
   atlast index <directory> [--db <database>]
   atlast search <query> [--limit <1-100>] [--db <database>]
   atlast sources [--db <database>]
+  atlast refresh [--db <database>]
   atlast forget <directory> [--db <database>]
   atlast --help
 
@@ -211,6 +212,13 @@ int run(int argc, char* argv[]) {
             return 2;
         }
         return list_sources(options.database);
+    }
+
+    if (command == "refresh") {
+        if (!parse_options(argc, argv, 2, false, options)) {
+            return 2;
+        }
+        return refresh_sources(options.database);
     }
 
     if (argc < 3) {
