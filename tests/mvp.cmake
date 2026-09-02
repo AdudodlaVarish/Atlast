@@ -44,6 +44,11 @@ function(run_atlast expected_result output_variable)
     set(${output_variable} "${output}" PARENT_SCOPE)
 endfunction()
 
+run_atlast(0 version_output --version)
+if(NOT version_output MATCHES "^atlast 0\\.1\\.0")
+    message(FATAL_ERROR "Unexpected version output:\n${version_output}")
+endif()
+
 run_atlast(0 first_index index "${source}" --db "${database}")
 if(NOT first_index MATCHES "Indexed: 2")
     message(FATAL_ERROR "Expected two indexed files:\n${first_index}")

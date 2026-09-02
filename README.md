@@ -1,437 +1,320 @@
 # Atlast
 
-Atlast is a local, persistent full-text search tool for source code, notes,
-configuration files, logs, and other text files. It recursively indexes a
-directory into a local SQLite database and searches that index from the command
-line.
+[![Release binaries](https://github.com/AdudodlaVarish/Atlast/actions/workflows/release.yml/badge.svg)](https://github.com/AdudodlaVarish/Atlast/actions/workflows/release.yml)
 
-Atlast began with a minimum viable search loop:
+Atlast is a persistent full-text search tool for developer workspaces. It
+indexes source code, notes, configuration, and logs into a local SQLite
+database, then returns ranked results with highlighted context.
 
-1. Discover supported text files beneath a directory.
-2. Detect new, changed, unchanged, and deleted files.
-3. Store file metadata and content in SQLite.
-4. Maintain an SQLite FTS5 full-text index.
-5. Run ranked searches and display highlighted snippets.
+Atlast runs locally. It does not require an account, server, hosted model, or
+network connection, and it does not upload indexed content.
 
-Atlast does not require an account, server, network connection, hosted model,
-or external search service. The indexed content remains in the database file
-you choose.
+```console
+$ atlast index ~/projects --db work.db
+Root: /home/you/projects
+Scanned: 1842
+Indexed: 1842
+Unchanged: 0
+Removed: 0
+Skipped: 0
+Failed: 0
 
-New developers should read [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
-after completing the Quick start. It explains the terminology, C++ features,
-database design, runtime flow, build file, and test script from first principles.
-
-## Current scope
-
-The current release provides:
-
-- Recursive directory indexing.
-- A fixed allowlist of common text and source-code extensions.
-- Persistent SQLite storage.
-- SQLite FTS5 tokenization and full-text search.
-- BM25 relevance ranking supplied by FTS5.
-- Highlighted snippets around matching terms.
-- Incremental indexing based on file modification time and size.
-- Replacement of changed content.
-- Removal of records for deleted files.
-- Listing, refreshing, and forgetting indexed source directories.
-- Optional provenance and BM25 details for search results.
-- Git history search through the repository's existing Git object store.
-- A five-second polling watch command for automatic refreshes.
-- Detection and exclusion of likely binary files.
-- A configurable database path.
-- A configurable search-result limit.
-- One automated end-to-end test covering the complete workflow.
-
-Atlast intentionally does not include semantic embeddings, natural-language
-answer generation, a server, plugins, or a custom search index. Those require
-evidence that deterministic local search is insufficient.
-
-## Requirements
-
-Building Atlast requires:
-
-- A C++23 compiler.
-- CMake 3.20 or newer.
-- SQLite 3 with FTS5 enabled.
-- A build tool supported by CMake, such as MinGW Make, Ninja, or Make.
-
-The optional `history` command also requires Git and currently runs on Linux,
-macOS, or WSL.
-
-The current Windows development environment uses:
-
-- GCC from MSYS2 UCRT64.
-- CMake from MSYS2 UCRT64.
-- MinGW Makefiles.
-- SQLite from MSYS2 UCRT64.
-
-SQLite has included FTS5 in standard builds for years, but distributors can
-still compile SQLite without it. If FTS5 is absent, schema creation fails with
-a clear SQLite error instead of creating a database that cannot search.
-
-## Build instructions
-
-### Windows with MSYS2 UCRT64
-
-Install the compiler, CMake, Make, and SQLite development package if they are
-not already installed:
-
-```bash
-pacman -S --needed mingw-w64-ucrt-x86_64-gcc \
-  mingw-w64-ucrt-x86_64-cmake \
-  mingw-w64-ucrt-x86_64-make \
-  mingw-w64-ucrt-x86_64-sqlite3
+$ atlast search "connection timeout path:backend ext:cpp" --db work.db
+1. /home/you/projects/service/backend/network.cpp
+   The upload failed after a [connection] [timeout] and entered the retry loop.
 ```
 
-Make sure `C:\msys64\ucrt64\bin` is on `PATH`, then configure and build from
-PowerShell:
+Atlast is experimental. The current release is useful, but its file support,
+performance, and interface are still deliberately small.
 
-```powershell
-cmake -S C:\Atlast -B C:\Atlast\build `
-  -G "MinGW Makefiles" `
-  -DCMAKE_BUILD_TYPE=Debug `
-  -DBUILD_TESTING=ON
+## Documentation
 
-cmake --build C:\Atlast\build --parallel
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Why should I use Atlast?](#why-should-i-use-atlast)
+- [Why shouldn't I use Atlast?](#why-shouldnt-i-use-atlast)
+- [Search syntax](#search-syntax)
+- [Building](#building)
+- [Developer guide](docs/DEVELOPER_GUIDE.md)
+
+## Quick examples
+
+Index more than one directory into the same database:
+
+```console
+$ atlast index ~/projects/api --db work.db
+$ atlast index ~/projects/frontend --db work.db
+$ atlast sources --db work.db
 ```
 
-The executable is produced at:
+Search all indexed directories:
 
-```text
-C:\Atlast\build\atlast.exe
+```console
+$ atlast search "retry policy" --db work.db
 ```
 
-For an optimized build, use a separate build directory:
+Use deterministic path, extension, and modification-time filters:
 
-```powershell
-cmake -S C:\Atlast -B C:\Atlast\build-release `
-  -G "MinGW Makefiles" `
-  -DCMAKE_BUILD_TYPE=Release `
-  -DBUILD_TESTING=ON
-
-cmake --build C:\Atlast\build-release --parallel
+```console
+$ atlast search "timeout path:backend ext:py modified:30d" --db work.db
 ```
 
-Keeping Debug and Release outputs in separate directories prevents one
-configuration from silently replacing the other.
+Use SQLite FTS5 phrases and Boolean operators:
 
-### Linux or macOS
-
-Install a C++23 compiler, CMake, and SQLite development files using the system
-package manager. Exact package names vary by distribution. Then run:
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
-cmake --build build --parallel
+```console
+$ atlast search '"connection timeout" OR "connection reset"' --db work.db
+$ atlast search "connection NOT websocket" --db work.db
+$ atlast search "migrat*" --db work.db
 ```
 
-If CMake cannot locate SQLite, confirm that both `sqlite3.h` and the SQLite
-library are installed. The SQLite command-line program alone is not always
-enough; the development headers and link library are also required.
+Refresh every indexed directory:
+
+```console
+$ atlast refresh --db work.db
+```
+
+Search committed Git history without copying it into the database:
+
+```console
+$ atlast history ~/projects/api "old retry policy"
+```
+
+Remove one directory from the index without touching its files:
+
+```console
+$ atlast forget ~/projects/frontend --db work.db
+```
+
+## Why should I use Atlast?
+
+- **Repeated searches are cheap.** Atlast pays the filesystem-reading cost
+  during indexing and searches the persistent FTS index afterward.
+- **One database can cover several workspaces.** Code, notes, and logs from
+  separate directories can appear in one result list.
+- **Results include context.** SQLite FTS5 supplies BM25 ranking and highlighted
+  snippets instead of returning paths alone.
+- **Updates are incremental.** Unchanged files are recognized by modification
+  time and size, while changed and deleted files update the index.
+- **The index is manageable.** `sources`, `refresh`, and `forget` make it
+  clear what the database contains.
+- **It stays local.** Atlast has one runtime dependency, SQLite, and no network
+  feature.
+- **Git history is available on demand.** The `history` command can find text
+  added or removed by earlier commits.
+
+In other words, use Atlast when you repeatedly search across several local
+developer workspaces and want a persistent, inspectable index.
+
+## Why shouldn't I use Atlast?
+
+Atlast is not intended to replace every search tool.
+
+- For a one-off regex search in the current repository, use
+  [ripgrep](https://github.com/BurntSushi/ripgrep). Atlast requires an indexing
+  step and does not support regular expressions.
+- For broad desktop document search across PDF, Office, email, and archives,
+  use a tool such as [Recoll](https://www.recoll.org/).
+- For instant Windows filename search, use
+  [Everything](https://www.voidtools.com/).
+- Atlast does not parse `.gitignore`; it prunes a fixed set of common
+  dependency and generated directories.
+- Git-history search is not available from the native Windows executable. It
+  works on Linux, macOS, and WSL.
+- `watch` polls every five seconds instead of subscribing to native filesystem
+  events.
+- There are no published benchmarks yet.
+
+If one of those limitations blocks your workflow, Atlast is probably not the
+right tool today.
+
+## Is Atlast faster than ripgrep?
+
+That comparison has not been benchmarked, and the tools do different work.
+
+ripgrep scans files for each search. Atlast reads supported files into a
+persistent index and searches that index repeatedly. The first Atlast query
+therefore includes an explicit indexing cost that a later query does not.
+
+Atlast will not claim a speed advantage until its indexing throughput, database
+size, memory use, and query latency have been measured on a reproducible public
+corpus.
+
+## Installation
+
+Tagged releases are configured to publish archives for:
+
+- Linux x86-64
+- macOS ARM64
+- Windows x86-64
+
+Download an archive from the
+[GitHub Releases page](https://github.com/AdudodlaVarish/Atlast/releases),
+extract it, and run the executable under `atlast/bin`.
+
+The Windows archive includes its SQLite and MinGW runtime DLLs. Linux requires
+the system SQLite runtime package, commonly named `libsqlite3-0`. macOS uses
+the system SQLite runtime.
+
+Confirm the executable works:
+
+```console
+$ atlast --version
+atlast 0.1.0
+
+$ atlast --help
+```
+
+Atlast is not currently available through Homebrew, APT, Winget, Scoop, or
+other package managers. Those instructions will be added only after packages
+actually exist.
 
 ## Quick start
 
-Index a directory into the default `atlast.db` database:
+Choose one database path and use it for both indexing and searching:
+
+```console
+$ atlast index ~/projects --db ~/.atlast.db
+$ atlast search "database migration" --db ~/.atlast.db
+```
+
+The database defaults to `atlast.db` in the current working directory when
+`--db` is omitted.
+
+On PowerShell:
 
 ```powershell
-cd C:\Atlast\build
-.\atlast.exe index C:\Users\you\Documents
+.\atlast.exe index C:\Projects --db C:\Indexes\work.db
+.\atlast.exe search "database migration" --db C:\Indexes\work.db
 ```
 
-Search the database:
-
-```powershell
-.\atlast.exe search "database migration"
-```
-
-Use an explicit database path when the index should live somewhere else:
-
-```powershell
-.\atlast.exe index C:\Projects --db C:\Indexes\projects.db
-.\atlast.exe search "connection timeout" --db C:\Indexes\projects.db
-```
-
-The `--db` option must be used consistently. Indexing one database and then
-searching another correctly produces no results because they are independent
-indexes.
-
-## Command reference
-
-### Help
-
-```text
-atlast --help
-atlast help
-```
-
-Prints command usage and exits successfully without opening a database.
-
-### Index
+## Usage
 
 ```text
 atlast index <directory> [--db <database>]
+atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
+atlast history <repository> <query> [--limit <1-100>]
+atlast sources [--db <database>]
+atlast refresh [--db <database>]
+atlast watch [--db <database>]
+atlast forget <directory> [--db <database>]
+atlast --help
+atlast --version
 ```
 
-Arguments and options:
+### Indexing
 
-- `<directory>` is the directory to scan recursively.
-- `--db <database>` selects the SQLite database file. It defaults to
-  `atlast.db` in the current working directory.
-
-Example:
-
-```powershell
-.\atlast.exe index C:\Projects\Atlast --db C:\Indexes\atlast-source.db
-```
-
-An indexing run prints these counters:
+`index` recursively discovers supported files and prints:
 
 ```text
-Root: C:/Projects/Atlast
-Scanned: 42
-Indexed: 5
-Unchanged: 36
-Removed: 1
+Root: /home/you/projects
+Scanned: 1842
+Indexed: 27
+Unchanged: 1812
+Removed: 3
 Skipped: 0
 Failed: 0
 ```
 
-Their meanings are:
+- `Scanned`: supported regular files considered.
+- `Indexed`: new or changed files written.
+- `Unchanged`: files whose stored modification time and size still match.
+- `Removed`: stale rows deleted from the index.
+- `Skipped`: oversized or likely binary files.
+- `Failed`: files that could not be inspected or read.
 
-- `Root`: normalized absolute directory recorded for this indexing run.
-- `Scanned`: supported regular files considered by the crawler.
-- `Indexed`: new or changed files written to the database.
-- `Unchanged`: files skipped because stored modification time and size still
-  match the filesystem.
-- `Removed`: old records deleted because a file disappeared or became
-  ineligible for indexing.
-- `Skipped`: files rejected because they exceed the size limit or contain a
-  null byte and therefore appear binary.
-- `Failed`: files or directories that could not be inspected or read.
+If a changed file cannot be read, Atlast keeps its previous searchable row. If
+directory traversal stops unexpectedly, Atlast does not perform stale-row
+cleanup. Both rules favor preserving existing index data over deleting it after
+a temporary filesystem failure.
 
-The command returns a nonzero status when any file operation fails. Successfully
-processed files remain indexed, while a previously indexed file that cannot be
-read keeps its older database record. This favors preserving useful data over
-deleting it because of a temporary permissions or sharing error.
+### Searching
 
-### Sources
+`search` returns at most 10 results by default:
 
-```text
-atlast sources [--db <database>]
+```console
+$ atlast search "shadow table" --limit 5 --db work.db
 ```
 
-Lists each indexed directory with its current file count and last index time.
-Databases created by an older Atlast version show `unknown` until that source is
-indexed again.
+Results are ordered by SQLite FTS5's `bm25()` score, with path used as a
+deterministic tie-breaker. `--explain` displays the row ID, source root,
+stored metadata, parsed FTS query, and BM25 score.
 
-### Refresh
+### Indexed sources
 
-```text
-atlast refresh [--db <database>]
+```console
+$ atlast sources --db work.db
+$ atlast refresh --db work.db
+$ atlast watch --db work.db
+$ atlast forget ~/projects/old-service --db work.db
 ```
 
-Incrementally re-indexes every directory listed by `sources`. A directory that
-cannot be read reports an error but does not stop the remaining directories or
-remove its stored records. The command returns a nonzero status if any source
-fails.
-
-### Watch
-
-```text
-atlast watch [--db <database>]
-```
-
-Runs `refresh` every five seconds until interrupted with Ctrl+C. This is a
-portable polling loop, not a platform-specific filesystem watcher.
-
-### Forget
-
-```text
-atlast forget <directory> [--db <database>]
-```
-
-Removes one indexed directory and its searchable records from the database.
-The original directory and files are not changed. The directory does not need
-to still exist on disk, but its path must identify the same normalized root used
-by `index`.
-
-### Search
-
-```text
-atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
-```
-
-Arguments and options:
-
-- `<query>` contains FTS5 search text and may include Atlast's `path:`, `ext:`,
-  and `modified:` filters. Quote the complete query at the shell level when it
-  contains spaces.
-- `--limit <1-100>` controls the maximum number of results. The default is 10.
-- `--explain` prints the SQLite row, source root, metadata version, parsed FTS
-  query, and BM25 score for each result.
-- `--db <database>` selects the database file. It defaults to `atlast.db` in
-  the current working directory.
-
-Example output:
-
-```text
-1. C:/Projects/Atlast/src/network.cpp
-   The upload failed after a [connection] [timeout] and entered the retry loop.
-```
-
-Results are ordered by SQLite FTS5's `bm25()` relevance score. Atlast then uses
-the path as a deterministic tie-breaker. The numeric value is shown only with
-`--explain` because it is useful within one query, not across unrelated queries.
+`sources` lists every indexed root, its file count, and its last index time.
+`refresh` incrementally re-indexes every root. `watch` repeats that refresh
+every five seconds until interrupted. `forget` deletes one root's database
+rows but never deletes source files.
 
 ### Git history
 
-```text
-atlast history <repository> <query> [--limit <1-100>]
+```console
+$ atlast history <repository> <query> [--limit <1-100>]
 ```
 
-Uses Git's existing object store to find commits whose patches added or removed
-the literal query text. It prints commit, date, author, subject, and changed
-paths. History is searched on demand and is not copied into the Atlast database.
+`history` delegates to the repository's installed Git command and searches
+patches across all refs. It prints matching commit metadata and changed paths.
+History is searched on demand and is not stored in SQLite.
 
-## Search query syntax
+## Search syntax
 
-Atlast separates its filters from the query, then passes the remaining search
-text to SQLite FTS5 using a prepared statement. Prepared statements prevent SQL
-injection, while FTS5 still interprets its own search operators. Invalid FTS5
-syntax returns a search error.
+Atlast removes its own filters from the query and passes the remaining text to
+SQLite FTS5. FTS phrases and operators therefore continue to work alongside
+Atlast filters.
 
-Common queries include:
+| Filter | Meaning |
+| --- | --- |
+| `path:<text>` | Case-insensitive literal substring of the normalized path |
+| `ext:<extension>` | Case-insensitive final extension |
+| `modified:<days>d` | Modified within the given number of days |
 
-### All terms
+All filters must match the same result:
 
-```powershell
-.\atlast.exe search "connection timeout"
+```console
+$ atlast search "dcf OR money path:backend ext:py modified:30d"
 ```
 
-Adjacent terms behave like an implicit `AND`: both terms must match, though
-they do not have to be adjacent.
-
-### Exact phrase
-
-PowerShell must pass the double quotes through to FTS5. One convenient form is
-an outer single-quoted shell string:
-
-```powershell
-.\atlast.exe search '"connection timeout"'
-```
-
-This requires the words to appear as a phrase.
-
-### Alternatives
-
-```powershell
-.\atlast.exe search "timeout OR reset"
-```
-
-This matches either term. FTS5 operators such as `OR` are uppercase.
-
-### Exclusion
-
-```powershell
-.\atlast.exe search "connection NOT websocket"
-```
-
-This matches `connection` while excluding results that match `websocket`.
-
-### Prefix matching
-
-```powershell
-.\atlast.exe search "migrat*"
-```
-
-This can match tokens such as `migrate`, `migrated`, and `migration`.
-
-### Atlast filters
-
-Atlast recognizes three deterministic filters inside the query argument:
+This means:
 
 ```text
-path:<substring>
-ext:<extension>
-modified:<days>d
+(dcf OR money)
+AND path contains "backend"
+AND extension is ".py"
+AND modified within 30 days
 ```
 
-Filters are removed before the remaining text is sent to FTS5. All supplied
-filters must match the same document.
+Filter rules:
 
-```powershell
-.\atlast.exe search "timeout path:backend ext:py modified:30d"
+- Search text is required; `ext:py` alone is rejected.
+- Each filter can appear once.
+- Filter names are lowercase.
+- The leading dot in `ext:.cpp` is optional.
+- `modified:` accepts `1d` through `36500d`.
+- Quote a path containing spaces: `path:"design notes"`.
+
+Useful FTS5 forms:
+
+```text
+connection timeout       both tokens
+"connection timeout"     exact phrase
+timeout OR reset         either expression
+connection NOT websocket exclude websocket
+migrat*                  token prefix
+content:timeout          search content, not indexed paths
 ```
 
-This searches for `timeout`, keeps paths containing `backend`, keeps `.py`
-files, and keeps files modified during the last 30 days.
+Invalid FTS5 syntax is reported as a search error.
 
-#### Path filter
+## Files searched
 
-```powershell
-.\atlast.exe search "migration path:database"
-```
-
-`path:` performs a literal, case-insensitive substring check against the
-normalized absolute path. It is not tokenized and has no wildcard syntax.
-
-Quote a path fragment containing spaces inside the complete query:
-
-```powershell
-.\atlast.exe search 'migration path:"design notes"'
-```
-
-#### Extension filter
-
-```powershell
-.\atlast.exe search "connection ext:cpp"
-.\atlast.exe search "connection ext:.CPP"
-```
-
-The leading dot is optional and matching is case-insensitive. The value must
-contain only letters and digits. It matches the final extension, so `ext:ts`
-also matches a filename ending in `.d.ts`.
-
-#### Modified-date filter
-
-```powershell
-.\atlast.exe search "authentication modified:7d"
-```
-
-`modified:7d` means "modified within the last seven days." The supported range
-is `1d` through `36500d`. Atlast compares against the modification timestamp
-stored during the last indexing run. Re-index changed files before relying on
-this filter.
-
-#### Filter rules
-
-- Search text is required; a filter-only query such as `ext:py` is rejected.
-- Each filter may appear at most once.
-- Filters may appear in any order and are combined with `AND`.
-- Filter names are lowercase: `path:`, `ext:`, and `modified:`.
-- Filter values are bound to prepared SQL statements.
-
-FTS phrases and operators still work alongside filters:
-
-```powershell
-.\atlast.exe search '"connection timeout" ext:log modified:7d'
-```
-
-### Search only content
-
-Both normalized paths and file content are indexed. The `path:` name is now an
-Atlast substring filter. FTS5's `content:` column filter remains available:
-
-```powershell
-.\atlast.exe search "content:timeout"
-```
-
-This prevents a filename token from satisfying the full-text part of the query.
-
-## Files that are indexed
-
-Atlast currently accepts regular files with these case-insensitive extensions:
+Atlast indexes regular files with these case-insensitive extensions:
 
 ```text
 .c .cc .cmake .cpp .cs .css .csv .cxx .go .h .hpp .htm .html .hxx
@@ -439,319 +322,127 @@ Atlast currently accepts regular files with these case-insensitive extensions:
 .yaml .yml
 ```
 
-Additional rules:
-
-- Directories named `.git`, `.next`, `build`, `coverage`, `dist`, or
-  `node_modules` are pruned during recursive traversal. Atlast does not inspect
-  their contents.
-- Any directory containing `pyvenv.cfg` is recognized as a Python virtual
-  environment and pruned, regardless of whether it is named `.venv`, `venv`,
-  `my_venv`, or something else.
-- Files larger than 10 MiB are skipped. The current implementation reads a
-  complete file into memory before sending it to SQLite, so the limit bounds
-  per-file memory use.
-- Files containing a null byte are treated as binary and skipped.
-- Symbolic-link directories are not followed by the default filesystem
-  iterator behavior. This avoids accidental cycles and indexing outside the
-  requested tree.
-- Directories that cannot be entered because of permissions are skipped.
-- Extension matching is case-insensitive.
-- File paths are normalized and stored with forward slashes in UTF-8 form.
-
-The allowlist is deliberately explicit. Indexing every unknown extension would
-eventually ingest archives, databases, executables, media, and generated output
-that happen not to contain an early null byte.
-
-## Incremental indexing behavior
-
-Before crawling a root, Atlast loads the stored path, modification time, and
-size for documents attributed to that root. Each discovered file follows this
-decision process:
-
-1. Ignore unsupported files.
-2. Avoid descending into ignored dependency and generated directories,
-   including Python environments detected through `pyvenv.cfg`.
-3. Read file metadata.
-4. Skip the content read when modification time and size match the stored row.
-5. Reject files over 10 MiB.
-6. Read changed or new files.
-7. Reject content containing a null byte.
-8. Insert or update the document using its normalized path as the unique key.
-9. After a complete traversal, delete stored paths no longer discovered.
-
-After upgrading from an earlier Atlast build, run `index` again on each root.
-The stale-record pass removes old rows that came from directories now ignored.
-
-Modification time plus size is a fast change detector, not a cryptographic
-guarantee. A program could theoretically rewrite a file with different content
-while preserving both values. Content hashing should be added only when that
-case matters in practice, because hashing every unchanged file would require
-reading every file on every run and defeat the inexpensive incremental check.
-
-If traversal stops because of a filesystem exception, Atlast does not perform
-the final stale-file deletion pass. This prevents an incomplete crawl from
-mistaking unvisited files for deleted files.
-
-## Database design
-
-The database contains source metadata, a normal content table, and an FTS5
-external-content table.
-
-```sql
-CREATE TABLE sources (
-    root         TEXT PRIMARY KEY,
-    last_indexed INTEGER NOT NULL
-);
-```
-
-`sources` stores one normalized root and its last index time. File counts are
-computed from `documents`, so no duplicate counter can drift out of sync.
-
-The normal table is conceptually:
-
-```sql
-CREATE TABLE documents (
-    id       INTEGER PRIMARY KEY,
-    root     TEXT NOT NULL,
-    path     TEXT NOT NULL UNIQUE,
-    modified INTEGER NOT NULL,
-    size     INTEGER NOT NULL,
-    content  TEXT NOT NULL
-);
-```
-
-Column purposes:
-
-- `id`: stable SQLite row identifier used by the FTS index.
-- `root`: normalized directory responsible for the row during the most recent
-  indexing run.
-- `path`: normalized absolute file path and global uniqueness key.
-- `modified`: filesystem modification clock value used for change detection.
-- `size`: byte length used for change detection and diagnostics.
-- `content`: complete file text returned to FTS5 for snippets.
-
-The search table is conceptually:
-
-```sql
-CREATE VIRTUAL TABLE documents_fts USING fts5(
-    path,
-    content,
-    content = 'documents',
-    content_rowid = 'id',
-    tokenize = 'unicode61'
-);
-```
-
-`documents_fts` is an external-content FTS table. SQLite keeps the authoritative
-content once in `documents`; the FTS table stores the structures needed for
-search instead of another full copy of every document. Insert, delete, and
-update triggers keep the search index synchronized with the content table.
-
-All data values are bound to prepared statements. Paths, file content, roots,
-queries, and limits are never concatenated into SQL commands.
-
-## Transactions and failure handling
-
-An index run uses `BEGIN IMMEDIATE` and commits after crawling and stale-record
-cleanup. This ensures readers never observe half-written individual SQLite
-changes and ensures trigger updates stay consistent with content rows.
-
-Behavior by failure type:
-
-- Database open or schema error: stop before crawling.
-- SQL prepare, bind, or execution error: roll back the transaction.
-- Changed file cannot be read: count the failure and retain its prior row.
-- New file cannot be read: count the failure and create no row.
-- File is now oversized or binary: remove its previous row because it is no
-  longer eligible.
-- Directory traversal throws: retain records for paths not visited during the
-  incomplete traversal.
-- Database remains locked for five seconds: SQLite returns an error. The busy
-  timeout handles short overlap without waiting forever.
-
-The database schema is created automatically by either `index` or `search`.
-Searching a new database therefore succeeds and prints `No results.`
-
-## Exit codes
-
-Atlast uses these process exit codes:
-
-| Code | Meaning |
-| ---: | --- |
-| `0` | The command completed successfully. |
-| `1` | A filesystem, database, schema, indexing, or search operation failed. |
-| `2` | The command line was invalid, such as a missing argument or bad limit. |
-
-These codes make Atlast suitable for scripts and automated jobs. Console error
-messages are written to standard error; normal results and statistics are
-written to standard output.
-
-## Automated tests
-
-Run the test suite after building:
-
-```powershell
-ctest --test-dir C:\Atlast\build --output-on-failure
-```
-
-For a clean build-and-test sequence:
-
-```powershell
-cmake -S C:\Atlast -B C:\Atlast\build `
-  -G "MinGW Makefiles" `
-  -DCMAKE_BUILD_TYPE=Debug `
-  -DBUILD_TESTING=ON
-cmake --build C:\Atlast\build --parallel
-ctest --test-dir C:\Atlast\build --output-on-failure
-```
-
-The `atlast_mvp` end-to-end test uses only CMake's scripting language and the
-built executable. It creates an isolated temporary directory under the build
-tree and verifies:
-
-1. Two supported files are indexed.
-2. An unsupported `.bin` file is ignored.
-3. Dependency, generated, and custom-named Python virtual-environment
-   directories are not traversed or indexed.
-4. A multi-term query finds the expected file.
-5. A second index run reports both files as unchanged.
-6. Changed content replaces old searchable content.
-7. A deleted file is removed from the index.
-8. New content is searchable with a result limit.
-9. Path, extension, recent-modification, and combined filters narrow results.
-10. Invalid filters and filter-only searches return command-line error code `2`.
-11. An invalid result limit returns command-line error code `2`.
-12. Indexed sources report their file count and last index time.
-13. Refresh updates changed content across two indexed sources.
-14. Forgetting a source removes its search records but leaves its files intact.
-15. Explained search results include provenance and ranking details.
-16. When Git is installed, history search finds content from a test commit.
-
-The test deletes and recreates only its own `build/test-data` directory. It does
-not read or modify personal documents.
-
-## Repository layout
+It does not descend into:
 
 ```text
-Atlast/
-├── .vscode/
-│   └── settings.json   # Disables configure-on-edit in VS Code.
-├── src/
-│   ├── atlast.hpp      # Shared declarations for top-level operations.
-│   ├── cli.cpp         # Argument parsing and command routing.
-│   ├── database.cpp    # SQLite connection, schema, and statement helpers.
-│   ├── database.hpp    # Internal SQLite helper declarations.
-│   ├── git.cpp         # Git history search through the Git CLI.
-│   ├── indexer.cpp     # Indexing and indexed-source management.
-│   ├── main.cpp        # Minimal process entry point.
-│   └── search.cpp      # FTS5 query execution and result output.
-├── tests/
-│   └── mvp.cmake       # End-to-end test with no test framework dependency.
-├── CMakeLists.txt      # Build target, SQLite link, and CTest registration.
-└── README.md           # User, developer, and architecture documentation.
+.git .next build coverage dist node_modules
 ```
 
-The C++ code is split by runtime responsibility. `main.cpp` delegates to the
-CLI, while indexing, searching, and SQLite details remain in focused translation
-units. The project deliberately avoids storage interfaces, factories, plugin
-APIs, and one-class-per-file scaffolding because each current responsibility has
-one concrete implementation.
+Any directory containing `pyvenv.cfg` is also ignored, regardless of its
+name. This catches Python environments named `.venv`, `venv`, `my_venv`,
+or something else.
 
-## Troubleshooting
+Files larger than 10 MiB are skipped. Files containing a null byte are treated
+as binary and skipped. Symbolic-link directories are not followed.
 
-### CMake cannot find SQLite
+The allowlist is intentionally conservative. Indexing every unknown extension
+would eventually ingest databases, archives, executables, and media.
 
-Typical error:
+## Building
 
-```text
-Could NOT find SQLite3
+Atlast requires:
+
+- CMake 3.20 or newer
+- A C++23 compiler
+- SQLite 3 with FTS5
+- Make or MinGW Make
+- Git only for the optional `history` command
+
+On Linux and macOS:
+
+```console
+$ cmake --preset release
+$ cmake --build --preset release --parallel
+$ ctest --preset release
+$ ./build/release/atlast --version
 ```
 
-Install the SQLite development package, not only the SQLite executable. Confirm
-that the compiler environment can find both `sqlite3.h` and the SQLite library.
-Using the compiler, CMake, and SQLite packages from the same MSYS2 environment
-avoids mixing incompatible runtimes.
+On Windows, run the equivalent commands from an MSYS2 UCRT64 environment:
 
-### `sqlite3.dll` is missing on Windows
-
-Ensure `C:\msys64\ucrt64\bin` is on `PATH`, or place the matching DLL beside
-`atlast.exe`. Do not use a DLL from a different MSYS2 runtime or architecture.
-
-### `no such module: fts5`
-
-The SQLite library was compiled without FTS5. Install a standard SQLite build
-with FTS5 enabled and rebuild Atlast against that library. Atlast depends on
-FTS5 for indexing, BM25, and snippets; there is intentionally no second search
-implementation.
-
-### Search reports a syntax error
-
-The query is parsed by FTS5. Check unmatched quotes, misplaced operators, and
-shell quoting. Start with a single word, then add phrase or Boolean syntax.
-
-### Search returns no results after indexing
-
-Check that:
-
-- The file extension is supported.
-- The file is no larger than 10 MiB.
-- The index command reported no read failures.
-- The search command uses the same `--db` path as the index command.
-- The query terms appear as tokens in the content or path.
-
-### An edited file is reported unchanged
-
-Atlast compares modification time and size. Some tools can deliberately
-preserve timestamps, and a replacement can coincidentally keep the same size.
-Delete the database and re-index to force a rebuild. Content hashing is a later
-upgrade if this case becomes common.
-
-### The database is locked
-
-Atlast waits up to five seconds for a SQLite lock. Let the other index operation
-finish and retry. Atlast is designed for one writer at a time.
-
-## Cleaning generated files
-
-Build outputs and test data live under the selected build directory. The
-default database lives wherever the command is run unless `--db` is supplied.
-
-PowerShell examples:
-
-```powershell
-Remove-Item -Recurse -Force C:\Atlast\build
-Remove-Item C:\Path\To\atlast.db
+```console
+$ cmake --preset windows-release
+$ cmake --build --preset windows-release --parallel
+$ ctest --preset windows-release
+$ ./build/windows-release/atlast.exe --version
 ```
 
-Deleting the SQLite database removes the index only. It never removes source
-documents. The index can always be rebuilt from the original files.
+The required MSYS2 packages are:
 
-## Known limitations
+```console
+$ pacman -S --needed \
+    mingw-w64-ucrt-x86_64-gcc \
+    mingw-w64-ucrt-x86_64-cmake \
+    mingw-w64-ucrt-x86_64-make \
+    mingw-w64-ucrt-x86_64-sqlite3
+```
 
-- Git history search finds matching patch lines rather than merging every
-  historical blob into normal SQLite search results.
-- Native Windows Git-history invocation is not yet supported; use WSL.
+For a local install:
+
+```console
+$ cmake --install build/release --prefix package/atlast
+```
+
+## Running tests
+
+The project has one end-to-end test instead of a test framework:
+
+```console
+$ ctest --preset debug
+```
+
+It creates disposable files and a database under the selected build directory,
+runs the real executable through the complete workflow, and deletes only its
+own test data.
+
+The test covers indexing, incremental updates, ignored directories, ranked
+search, snippets, filters, multiple sources, refresh, forget, provenance,
+version output, and Git history when Git is available.
+
+## How it works
+
+Atlast uses `std::filesystem` to crawl each source and SQLite for persistence.
+The normal `documents` table owns paths, metadata, and content. An
+external-content FTS5 table owns the search index. SQLite triggers keep both
+tables synchronized.
+
+Indexing runs inside a transaction. Existing file metadata is loaded once,
+prepared statements are reused, and unchanged files are not read. Atlast
+supports one database writer at a time and waits up to five seconds for a
+SQLite lock.
+
+For the full source tour, terminology, schema, and control flow, read the
+[developer guide](docs/DEVELOPER_GUIDE.md).
+
+## Project status
+
+Atlast currently has these deliberate limits:
+
 - Plain-text formats only; no PDF, Office, archive, or image extraction.
-- `watch` polls every five seconds instead of using native filesystem events.
-- No semantic or vector search.
-- No natural-language answer generation.
-- No Boolean expressions, negation, or ranges for Atlast filters; one `path:`,
-  `ext:`, and `modified:Nd` value may be combined with full-text search.
-- One database writer at a time.
-- Files are read completely into memory, bounded by the 10 MiB limit.
-- Modification time and size are used instead of content hashes.
-- Narrow command-line arguments can limit some Unicode path handling on
-  Windows terminals depending on the active code page.
-- Search ranking uses FTS5 defaults and is not user-configurable.
+- No semantic/vector search or natural-language answers.
+- No regular expressions.
+- No configuration file or user-defined extension list.
+- One database writer.
+- Complete-file reads bounded by 10 MiB.
+- Modification time and size instead of content hashes.
+- FTS5's default ranking parameters.
+- Native Windows Git-history search is unavailable.
+- Filesystem watching uses polling.
 
-These are deliberate product boundaries, not partially implemented features.
+These are boundaries, not promises. Features should be added after a real
+workflow or measurement justifies them.
 
-## Deferred roadmap
+## Contributing
 
-1. **Document extraction:** add one format only when a real extractor and sample
-   files are available.
-2. **Semantic retrieval:** benchmark lexical search first, then add embeddings
-   only for queries that lexical search demonstrably misses.
+Start with the [developer guide](docs/DEVELOPER_GUIDE.md), then run:
 
-Atlast now provides deterministic current-file search, Git time-travel search,
-provenance, index management, and automatic polling refreshes.
+```console
+$ cmake --preset debug
+$ cmake --build --preset debug --parallel
+$ ctest --preset debug
+```
+
+Bug reports should include the command, expected result, actual result,
+operating system, compiler, and Atlast version. Please do not include private
+indexed content.
+
+

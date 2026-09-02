@@ -1,0 +1,91 @@
+name: Release binaries
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: atlast-linux-x86_64
+          - os: macos-latest
+            artifact: atlast-macos-arm64
+          - os: windows-latest
+            artifact: atlast-windows-x86_64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Install Windows dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-make
+            mingw-w64-ucrt-x86_64-sqlite3
+
+      - name: Build and test Linux or macOS
+        if: runner.os != 'Windows'
+        run: |
+          cmake --preset release
+          cmake --build --preset release --parallel
+          ctest --preset release
+          cmake --install build/release --prefix package/atlast
+          cmake -E chdir package cmake -E tar cf ../${{ matrix.artifact }}.zip --format=zip atlast
+
+      - name: Build and test Windows
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          cmake --preset windows-release
+          cmake --build --preset windows-release --parallel
+          ctest --preset windows-release
+          cmake --install build/windows-release --prefix package/atlast
+          cp /ucrt64/bin/libsqlite3-0.dll package/atlast/bin/
+          cp /ucrt64/bin/libstdc++-6.dll package/atlast/bin/
+          cp /ucrt64/bin/libgcc_s_seh-1.dll package/atlast/bin/
+          cp /ucrt64/bin/libwinpthread-1.dll package/atlast/bin/
+          cmake -E chdir package cmake -E tar cf ../${{ matrix.artifact }}.zip --format=zip atlast
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" release/*.zip --generate-notes --title "Atlast $GITHUB_REF_NAME"

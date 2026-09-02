@@ -26,6 +26,7 @@ Usage:
   atlast watch [--db <database>]
   atlast forget <directory> [--db <database>]
   atlast --help
+  atlast --version
 
 Search filters:
   path:<substring>  ext:<extension>  modified:<days>d
@@ -211,6 +212,10 @@ int run(int argc, char* argv[]) {
     const std::string_view command = argv[1];
     if (argc == 2 && (command == "--help" || command == "help")) {
         std::cout << usage;
+        return 0;
+    }
+    if (argc == 2 && command == "--version") {
+        std::cout << "atlast " << ATLAST_VERSION << '\n';
         return 0;
     }
 

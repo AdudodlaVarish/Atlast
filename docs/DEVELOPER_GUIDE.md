@@ -389,6 +389,8 @@ Atlast keeps each runtime responsibility in a focused source file:
 
 ```text
 CMakeLists.txt
+CMakePresets.json
+.github/workflows/release.yml
 src/atlast.hpp
 src/database.hpp
 src/main.cpp
@@ -411,6 +413,8 @@ The source-file responsibilities are:
 - `database.cpp`: SQLite connection, schema, statements, and binding.
 - `atlast.hpp`: declarations shared by top-level features.
 - `database.hpp`: declarations shared by SQLite consumers.
+- `CMakePresets.json`: shared Debug and Release build commands.
+- `release.yml`: builds tested archives when a release tag is pushed.
 
 Generated files under `build/` are not source code and should not be edited
 manually.
@@ -427,11 +431,11 @@ The project requires at least CMake 3.20. Requiring a known minimum avoids
 silently accepting older behavior that does not understand the configuration.
 
 ```cmake
-project(Atlast LANGUAGES CXX)
+project(Atlast VERSION 0.1.0 LANGUAGES CXX)
 ```
 
-This names the project and says it uses C++ only. CMake therefore does not spend
-time configuring a C compiler for this target.
+This names and versions the project and says it uses C++ only. CMake therefore
+does not spend time configuring a C compiler for this target.
 
 ```cmake
 find_package(SQLite3 REQUIRED)
@@ -458,10 +462,13 @@ not need to be listed for compilation because implementation files include them.
 
 ```cmake
 target_compile_features(atlast PRIVATE cxx_std_23)
+target_compile_definitions(atlast PRIVATE ATLAST_VERSION="${PROJECT_VERSION}")
 ```
 
 Atlast needs C++23. `PRIVATE` means this requirement belongs to the executable
 and is not being advertised to another target that links Atlast.
+`ATLAST_VERSION` makes the CMake project version available to the `--version`
+command without repeating the number in C++.
 
 ```cmake
 set_target_properties(atlast PROPERTIES CXX_EXTENSIONS OFF)
@@ -472,11 +479,24 @@ builds because of an accidental GCC-only language extension would be less
 portable.
 
 ```cmake
-target_link_libraries(atlast PRIVATE SQLite::SQLite3)
+if(TARGET SQLite3::SQLite3)
+    target_link_libraries(atlast PRIVATE SQLite3::SQLite3)
+else()
+    target_link_libraries(atlast PRIVATE SQLite::SQLite3)
+endif()
 ```
 
-This links SQLite. The imported target also carries SQLite's required include
+This links SQLite. CMake versions use two names for the imported target, so the
+small fallback accepts either one. Both targets carry SQLite's required include
 directory, which lets `#include <sqlite3.h>` work without hard-coded paths.
+
+```cmake
+install(TARGETS atlast RUNTIME DESTINATION bin)
+install(FILES README.md DESTINATION share/doc/atlast)
+```
+
+These rules create a standard install layout containing `bin/atlast` and its
+README. Local staging and the release workflow reuse the same rules.
 
 ```cmake
 include(CTest)
@@ -494,6 +514,30 @@ endif()
 The test is registered only when testing is enabled. CMake passes the exact
 path of the built executable and a disposable test directory to
 `tests/mvp.cmake`.
+
+### Presets, packages, and releases
+
+A **preset** is a checked-in name for a group of CMake settings. Instead of
+remembering a binary directory and build type, a developer runs:
+
+```bash
+cmake --preset debug
+cmake --build --preset debug
+ctest --preset debug
+```
+
+Linux and macOS use `debug` or `release`. MSYS2 uses `windows-debug` or
+`windows-release` because its CMake generator is named `MinGW Makefiles`.
+
+An **install layout** is the directory tree produced by `cmake --install`. An
+**artifact** is a downloadable file produced by automation. A **release** is a
+named, versioned set of those artifacts on GitHub.
+
+`.github/workflows/release.yml` builds and tests Atlast on GitHub-hosted Linux,
+macOS ARM64, and Windows x64 machines. Manual runs retain the three archives as
+workflow artifacts. A pushed `v*` tag also creates a GitHub release. The Windows
+archive includes the four non-system DLLs reported by the MinGW executable;
+Linux and macOS use their platform SQLite runtime.
 
 ## C++ foundations used in the source files
 
@@ -1087,12 +1131,11 @@ one query, and verify the count.
 
 This teaches constants, option defaults, SQL limits, and behavior tests.
 
-### Exercise 3: add a `--version` command
+### Exercise 3: test the upper result limit
 
-Handle `--version` beside `--help`, print a compile-time version string, and add
-a CTest assertion.
+Add a test proving that `--limit 100` is accepted and `--limit 101` is rejected.
 
-This teaches command routing and exit codes without touching storage.
+This teaches boundary testing and exit codes without touching storage.
 
 ### Exercise 4: improve one error message
 
