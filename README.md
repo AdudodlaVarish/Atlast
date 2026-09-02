@@ -5,8 +5,7 @@ configuration files, logs, and other text files. It recursively indexes a
 directory into a local SQLite database and searches that index from the command
 line.
 
-This repository contains the minimum viable product (MVP). The MVP proves the
-complete search loop:
+Atlast began with a minimum viable search loop:
 
 1. Discover supported text files beneath a directory.
 2. Detect new, changed, unchanged, and deleted files.
@@ -22,7 +21,7 @@ New developers should read [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
 after completing the Quick start. It explains the terminology, C++ features,
 database design, runtime flow, build file, and test script from first principles.
 
-## MVP scope
+## Current scope
 
 The current release provides:
 
@@ -36,15 +35,17 @@ The current release provides:
 - Replacement of changed content.
 - Removal of records for deleted files.
 - Listing, refreshing, and forgetting indexed source directories.
+- Optional provenance and BM25 details for search results.
+- Git history search through the repository's existing Git object store.
+- A five-second polling watch command for automatic refreshes.
 - Detection and exclusion of likely binary files.
 - A configurable database path.
 - A configurable search-result limit.
 - One automated end-to-end test covering the complete workflow.
 
-The MVP intentionally does not include PDF extraction, semantic embeddings,
-Git history, filesystem watching, a daemon, a TUI, an HTTP API, plugins, or a
-custom search index. Those features would not improve the proof that the core
-index-and-search loop works.
+Atlast intentionally does not include semantic embeddings, natural-language
+answer generation, a server, plugins, or a custom search index. Those require
+evidence that deterministic local search is insufficient.
 
 ## Requirements
 
@@ -54,6 +55,9 @@ Building Atlast requires:
 - CMake 3.20 or newer.
 - SQLite 3 with FTS5 enabled.
 - A build tool supported by CMake, such as MinGW Make, Ninja, or Make.
+
+The optional `history` command also requires Git and currently runs on Linux,
+macOS, or WSL.
 
 The current Windows development environment uses:
 
@@ -232,6 +236,15 @@ cannot be read reports an error but does not stop the remaining directories or
 remove its stored records. The command returns a nonzero status if any source
 fails.
 
+### Watch
+
+```text
+atlast watch [--db <database>]
+```
+
+Runs `refresh` every five seconds until interrupted with Ctrl+C. This is a
+portable polling loop, not a platform-specific filesystem watcher.
+
 ### Forget
 
 ```text
@@ -246,7 +259,7 @@ by `index`.
 ### Search
 
 ```text
-atlast search <query> [--limit <1-100>] [--db <database>]
+atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
 ```
 
 Arguments and options:
@@ -255,6 +268,8 @@ Arguments and options:
   and `modified:` filters. Quote the complete query at the shell level when it
   contains spaces.
 - `--limit <1-100>` controls the maximum number of results. The default is 10.
+- `--explain` prints the SQLite row, source root, metadata version, parsed FTS
+  query, and BM25 score for each result.
 - `--db <database>` selects the database file. It defaults to `atlast.db` in
   the current working directory.
 
@@ -266,9 +281,18 @@ Example output:
 ```
 
 Results are ordered by SQLite FTS5's `bm25()` relevance score. Atlast then uses
-the path as a deterministic tie-breaker. The numeric BM25 value is intentionally
-not displayed because it is useful for ordering within one query, not as an
-absolute quality score across unrelated queries.
+the path as a deterministic tie-breaker. The numeric value is shown only with
+`--explain` because it is useful within one query, not across unrelated queries.
+
+### Git history
+
+```text
+atlast history <repository> <query> [--limit <1-100>]
+```
+
+Uses Git's existing object store to find commits whose patches added or removed
+the literal query text. It prints commit, date, author, subject, and changed
+paths. History is searched on demand and is not copied into the Atlast database.
 
 ## Search query syntax
 
@@ -600,6 +624,8 @@ tree and verifies:
 12. Indexed sources report their file count and last index time.
 13. Refresh updates changed content across two indexed sources.
 14. Forgetting a source removes its search records but leaves its files intact.
+15. Explained search results include provenance and ranking details.
+16. When Git is installed, history search finds content from a test commit.
 
 The test deletes and recreates only its own `build/test-data` directory. It does
 not read or modify personal documents.
@@ -615,6 +641,7 @@ Atlast/
 │   ├── cli.cpp         # Argument parsing and command routing.
 │   ├── database.cpp    # SQLite connection, schema, and statement helpers.
 │   ├── database.hpp    # Internal SQLite helper declarations.
+│   ├── git.cpp         # Git history search through the Git CLI.
 │   ├── indexer.cpp     # Indexing and indexed-source management.
 │   ├── main.cpp        # Minimal process entry point.
 │   └── search.cpp      # FTS5 query execution and result output.
@@ -682,7 +709,7 @@ upgrade if this case becomes common.
 ### The database is locked
 
 Atlast waits up to five seconds for a SQLite lock. Let the other index operation
-finish and retry. The MVP is designed for one writer at a time.
+finish and retry. Atlast is designed for one writer at a time.
 
 ## Cleaning generated files
 
@@ -701,9 +728,11 @@ documents. The index can always be rebuilt from the original files.
 
 ## Known limitations
 
-- Current files only; no Git history or time-travel search.
+- Git history search finds matching patch lines rather than merging every
+  historical blob into normal SQLite search results.
+- Native Windows Git-history invocation is not yet supported; use WSL.
 - Plain-text formats only; no PDF, Office, archive, or image extraction.
-- No filesystem watcher; users run `refresh` to observe changes.
+- `watch` polls every five seconds instead of using native filesystem events.
 - No semantic or vector search.
 - No natural-language answer generation.
 - No Boolean expressions, negation, or ranges for Atlast filters; one `path:`,
@@ -715,24 +744,14 @@ documents. The index can always be rebuilt from the original files.
   Windows terminals depending on the active code page.
 - Search ranking uses FTS5 defaults and is not user-configurable.
 
-These are deliberate MVP boundaries, not partially implemented features.
+These are deliberate product boundaries, not partially implemented features.
 
-## Recommended roadmap
+## Deferred roadmap
 
-The next milestones should preserve the working CLI and add one measurable
-capability at a time:
-
-1. **Git history:** invoke the Git CLI and index commit, path, and blob content.
-   Reuse Git's object store instead of creating another content-addressed store.
-2. **Provenance:** show the row, file version, query terms, and scoring factors
-   responsible for each result.
-3. **Filesystem watching:** add live updates only after repeated manual indexing
-   is proven inconvenient.
-4. **Document extraction:** add one format at a time behind real sample files
-   and tests.
-5. **Semantic retrieval:** benchmark lexical search first, then add embeddings
+1. **Document extraction:** add one format only when a real extractor and sample
+   files are available.
+2. **Semantic retrieval:** benchmark lexical search first, then add embeddings
    only for queries that lexical search demonstrably misses.
 
-The product's intended differentiator is eventually time-aware, explainable
-developer search. The current MVP supplies the deterministic local-search
-foundation that those later capabilities need.
+Atlast now provides deterministic current-file search, Git time-travel search,
+provenance, index management, and automatic polling refreshes.

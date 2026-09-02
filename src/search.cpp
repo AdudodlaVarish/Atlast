@@ -20,7 +20,12 @@ int search(const SearchRequest& request, std::string_view database_path,
 
     std::string sql = R"sql(
         SELECT d.path,
-               snippet(documents_fts, 1, '[', ']', ' ... ', 18)
+               snippet(documents_fts, 1, '[', ']', ' ... ', 18),
+               d.id,
+               d.root,
+               d.modified,
+               d.size,
+               bm25(documents_fts)
         FROM documents_fts
         JOIN documents AS d ON d.id = documents_fts.rowid
         WHERE documents_fts MATCH ?
@@ -82,6 +87,19 @@ int search(const SearchRequest& request, std::string_view database_path,
                   << "   "
                   << (snippet ? reinterpret_cast<const char*>(snippet) : "")
                   << '\n';
+        if (request.explain) {
+            const auto* root = sqlite3_column_text(statement.get(), 3);
+            std::cout << "   Provenance: row="
+                      << sqlite3_column_int64(statement.get(), 2)
+                      << " root="
+                      << (root ? reinterpret_cast<const char*>(root) : "")
+                      << " version="
+                      << sqlite3_column_int64(statement.get(), 4) << ':'
+                      << sqlite3_column_int64(statement.get(), 5) << '\n'
+                      << "   Match: query=" << request.text
+                      << " bm25=" << sqlite3_column_double(statement.get(), 6)
+                      << '\n';
+        }
     }
 
     if (result != SQLITE_DONE) {

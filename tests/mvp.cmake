@@ -69,6 +69,14 @@ if(NOT connection_search MATCHES "network.txt" OR
     message(FATAL_ERROR "Unexpected connection search:\n${connection_search}")
 endif()
 
+run_atlast(0 explained_search search "connection" --explain --db "${database}")
+if(NOT explained_search MATCHES "Provenance: row=" OR
+   NOT explained_search MATCHES "root=.*source" OR
+   NOT explained_search MATCHES "version=[-0-9]+:[0-9]+" OR
+   NOT explained_search MATCHES "Match: query=connection bm25=")
+    message(FATAL_ERROR "Search provenance is incomplete:\n${explained_search}")
+endif()
+
 run_atlast(0 path_filter search "connection path:network" --db "${database}")
 if(NOT path_filter MATCHES "network.txt")
     message(FATAL_ERROR "Path filter rejected the expected file:\n${path_filter}")
@@ -183,5 +191,39 @@ if(NOT empty_refresh MATCHES "No indexed sources")
 endif()
 
 run_atlast(1 missing_source forget "${source}" --db "${database}")
+
+if(GIT_EXECUTABLE AND EXISTS "${GIT_EXECUTABLE}")
+    set(history_repository "${TEST_DIRECTORY}/history-repository")
+    file(MAKE_DIRECTORY "${history_repository}")
+    file(WRITE "${history_repository}/history.cpp"
+        "const char* marker = \"historicalneedle\";\n")
+
+    function(run_git)
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" ${ARGN}
+            WORKING_DIRECTORY "${history_repository}"
+            RESULT_VARIABLE git_result
+            OUTPUT_VARIABLE git_output
+            ERROR_VARIABLE git_error
+        )
+        if(NOT git_result EQUAL 0)
+            message(FATAL_ERROR
+                "Git failed with ${git_result}\n${git_output}\n${git_error}")
+        endif()
+    endfunction()
+
+    run_git(init -q)
+    run_git(add history.cpp)
+    run_git(-c user.name=Atlast -c user.email=atlast@example.invalid
+        commit -q -m "Initial history")
+
+    run_atlast(0 history_output history "${history_repository}"
+        "historicalneedle" --limit 1)
+    if(NOT history_output MATCHES "Subject: Initial history" OR
+       NOT history_output MATCHES "history.cpp")
+        message(FATAL_ERROR "Git history search failed:\n${history_output}")
+    endif()
+    run_atlast(2 empty_history history "${history_repository}" "")
+endif()
 
 message(STATUS "Atlast MVP end-to-end test passed")

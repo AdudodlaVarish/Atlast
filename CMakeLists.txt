@@ -7,6 +7,7 @@ find_package(SQLite3 REQUIRED)
 add_executable(atlast
     src/cli.cpp
     src/database.cpp
+    src/git.cpp
     src/indexer.cpp
     src/main.cpp
     src/search.cpp
@@ -19,11 +20,13 @@ target_link_libraries(atlast PRIVATE SQLite::SQLite3)
 include(CTest)
 
 if(BUILD_TESTING)
+    find_package(Git QUIET)
     add_test(
         NAME atlast_mvp
         COMMAND ${CMAKE_COMMAND}
             "-DATLAST_EXECUTABLE=$<TARGET_FILE:atlast>"
             "-DTEST_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/test-data"
+            "-DGIT_EXECUTABLE=${GIT_EXECUTABLE}"
             -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/mvp.cmake"
     )
 endif()

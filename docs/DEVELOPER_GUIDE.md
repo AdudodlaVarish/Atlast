@@ -39,6 +39,7 @@ Input:
 ```text
 src/main.cpp
 src/cli.cpp
+src/git.cpp
 src/indexer.cpp
 src/search.cpp
 src/database.cpp
@@ -392,6 +393,7 @@ src/atlast.hpp
 src/database.hpp
 src/main.cpp
 src/cli.cpp
+src/git.cpp
 src/indexer.cpp
 src/search.cpp
 src/database.cpp
@@ -403,6 +405,7 @@ The source-file responsibilities are:
 
 - `main.cpp`: process entry point only.
 - `cli.cpp`: command-line help, validation, and routing.
+- `git.cpp`: on-demand Git history search through the Git CLI.
 - `indexer.cpp`: crawling, filtering, file reading, and incremental updates.
 - `search.cpp`: FTS5 queries and result formatting.
 - `database.cpp`: SQLite connection, schema, statements, and binding.
@@ -442,13 +445,14 @@ to compilation or linking and make the message less clear.
 add_executable(atlast
     src/cli.cpp
     src/database.cpp
+    src/git.cpp
     src/indexer.cpp
     src/main.cpp
     src/search.cpp
 )
 ```
 
-This creates an executable target named `atlast` from five implementation
+This creates an executable target named `atlast` from six implementation
 files. A target is CMake's representation of something it can build. Headers do
 not need to be listed for compilation because implementation files include them.
 
@@ -693,9 +697,10 @@ Read these files and functions in execution order:
 1. `main.cpp`: `main`
 2. `cli.cpp`: `run`, `parse_options`, then `parse_search_request`
 3. `indexer.cpp`: `index_directory`, `list_sources`, `refresh_sources`,
-   `forget_directory`, and their local helpers
+   `watch_sources`, `forget_directory`, and their local helpers
 4. `search.cpp`: `search`
-5. `database.cpp`: `open`, `ensure_schema`, `prepare`, `bind_text`, and
+5. `git.cpp`: `search_git_history`
+6. `database.cpp`: `open`, `ensure_schema`, `prepare`, `bind_text`, and
    `execute`
 
 This order follows the program's decisions from user input toward lower-level
@@ -712,8 +717,8 @@ int main(int argc, char* argv[])
 - `argc` is the number of command-line strings.
 - `argv` is the array of those strings.
 - `argv[0]` is the executable name.
-- `argv[1]` is normally `index`, `search`, `sources`, `refresh`, `forget`, or
-  `--help`.
+- `argv[1]` is normally `index`, `search`, `history`, `sources`, `refresh`,
+  `watch`, `forget`, or `--help`.
 - `argv[2]` is the required directory or query for commands that need one.
 
 `main` performs one handoff:
@@ -727,9 +732,8 @@ The operating-system entry point therefore contains no application logic.
 ### `run`
 
 `run`, in `cli.cpp`, handles help, validates argument counts, parses options,
-and routes to `index_directory`, `search`, `list_sources`, `refresh_sources`,
-or `forget_directory`. It does not crawl files or write SQL itself. This keeps
-command routing visible in one place.
+and routes to the matching top-level function. It does not crawl files, invoke
+Git, or write SQL itself. This keeps command routing visible in one place.
 
 ### `parse_options`
 
@@ -739,8 +743,8 @@ When it finds `--db`, it requires another argument and stores that path. When a
 search command finds `--limit`, `std::from_chars` converts the text to an integer
 without exceptions. The function rejects values outside 1 through 100.
 
-The `allow_limit` parameter prevents an index command from silently accepting a
-search-only option.
+The `allow_limit` and `allow_explain` parameters prevent commands from silently
+accepting options they do not support.
 
 ### `parse_search_request`
 
@@ -892,14 +896,15 @@ complete traversal.
 When a read fails, the path is still discovered. Therefore, a temporary read
 failure does not cause the stale cleanup to delete its older searchable row.
 
-### `list_sources`, `refresh_sources`, and `forget_directory`
+### `list_sources`, `refresh_sources`, `watch_sources`, and `forget_directory`
 
 `list_sources` joins `sources` to `documents`, counts current files per root,
 and formats the stored UTC index time with SQLite. `refresh_sources` reads every
 stored root, closes that listing connection, then calls `index_directory` for
 each root. It continues after a source fails and returns a failure status at the
-end. `forget_directory` normalizes the requested root, then deletes its document
-and source rows in one transaction. Existing delete triggers remove the
+end. `watch_sources` reruns that same refresh every five seconds until Ctrl+C.
+`forget_directory` normalizes the requested root, then deletes its document and
+source rows in one transaction. Existing delete triggers remove the
 corresponding FTS entries; none of these functions modifies the original files.
 
 ### `search`
@@ -913,7 +918,8 @@ The search flow is:
 5. Bind search text, filter values, timestamp threshold, and result limit.
 6. Step through matching rows.
 7. Print each normalized path and highlighted snippet.
-8. Print `No results.` when no rows match.
+8. With `--explain`, print row, root, metadata version, query, and BM25 score.
+9. Print `No results.` when no rows match.
 
 The SQL text is assembled only from fixed strings written in `search.cpp`.
 User-provided values always occupy `?` placeholders and are bound separately.
@@ -926,6 +932,14 @@ SQLite returns one row each time `sqlite3_step` returns `SQLITE_ROW`. It returns
 
 The SQL orders first by `bm25(documents_fts)` and then by path. The path order
 makes ties deterministic rather than dependent on internal database order.
+
+### `search_git_history`
+
+This function validates the repository path, escapes the query as a literal Git
+regular expression, safely quotes shell arguments on POSIX systems, and reads
+`git log -G` output through a pipe. Git remains the owner of commit and blob
+storage; Atlast does not duplicate history in SQLite. The command currently
+requires Linux, macOS, or WSL.
 
 ## Understanding the test
 
@@ -957,6 +971,7 @@ Examples include checking that:
 
 - The first run reports two indexed files.
 - Search output names `network.txt`.
+- Explained output includes provenance and BM25 details.
 - The unsupported `.bin` file does not appear.
 - Files inside ignored dependency and generated directories do not appear.
 - Files inside a custom-named Python virtual environment do not appear.
@@ -970,6 +985,7 @@ Examples include checking that:
 - Refresh updates both registered source directories.
 - A deleted file contributes to the removal count.
 - An invalid limit returns exit code `2`.
+- Git history search finds a committed test marker when Git is installed.
 
 This test targets observable behavior instead of internal function details. A
 future refactor can reorganize source files without rewriting the test if CLI

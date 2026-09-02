@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -14,6 +15,7 @@
 #include <ranges>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -437,6 +439,17 @@ int refresh_sources(std::string_view database_path) {
         }
     }
     return status;
+}
+
+int watch_sources(std::string_view database_path) {
+    std::cout << "Watching indexed sources every 5 seconds. Press Ctrl+C to stop."
+              << std::endl;
+    // ponytail: polling rescans metadata; use native notifications only if
+    // large trees make that measurably expensive.
+    for (;;) {
+        refresh_sources(database_path);
+        std::this_thread::sleep_for(std::chrono::seconds{5});
+    }
 }
 
 int forget_directory(const fs::path& requested_root,

@@ -19,9 +19,11 @@ constexpr std::string_view usage = R"(Atlast - local full-text search
 
 Usage:
   atlast index <directory> [--db <database>]
-  atlast search <query> [--limit <1-100>] [--db <database>]
+  atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
+  atlast history <repository> <query> [--limit <1-100>]
   atlast sources [--db <database>]
   atlast refresh [--db <database>]
+  atlast watch [--db <database>]
   atlast forget <directory> [--db <database>]
   atlast --help
 
@@ -32,10 +34,11 @@ Search filters:
 struct Options {
     std::string database = "atlast.db";
     int limit = default_result_limit;
+    bool explain = false;
 };
 
 bool parse_options(int argc, char* argv[], int start, bool allow_limit,
-                   Options& options) {
+                   bool allow_explain, Options& options) {
     for (int index = start; index < argc; ++index) {
         const std::string_view option = argv[index];
 
@@ -65,6 +68,11 @@ bool parse_options(int argc, char* argv[], int start, bool allow_limit,
                 return false;
             }
             options.limit = limit;
+            continue;
+        }
+
+        if (option == "--explain" && allow_explain) {
+            options.explain = true;
             continue;
         }
 
@@ -208,17 +216,39 @@ int run(int argc, char* argv[]) {
 
     Options options;
     if (command == "sources") {
-        if (!parse_options(argc, argv, 2, false, options)) {
+        if (!parse_options(argc, argv, 2, false, false, options)) {
             return 2;
         }
         return list_sources(options.database);
     }
 
     if (command == "refresh") {
-        if (!parse_options(argc, argv, 2, false, options)) {
+        if (!parse_options(argc, argv, 2, false, false, options)) {
             return 2;
         }
         return refresh_sources(options.database);
+    }
+
+    if (command == "watch") {
+        if (!parse_options(argc, argv, 2, false, false, options)) {
+            return 2;
+        }
+        return watch_sources(options.database);
+    }
+
+    if (command == "history") {
+        if (argc < 4) {
+            std::cerr << usage;
+            return 2;
+        }
+        if (std::string_view{argv[3]}.empty()) {
+            std::cerr << "History search requires non-empty text.\n";
+            return 2;
+        }
+        if (!parse_options(argc, argv, 4, true, false, options)) {
+            return 2;
+        }
+        return search_git_history(argv[2], argv[3], options.limit);
     }
 
     if (argc < 3) {
@@ -227,25 +257,26 @@ int run(int argc, char* argv[]) {
     }
 
     if (command == "index") {
-        if (!parse_options(argc, argv, 3, false, options)) {
+        if (!parse_options(argc, argv, 3, false, false, options)) {
             return 2;
         }
         return index_directory(argv[2], options.database);
     }
 
     if (command == "search") {
-        if (!parse_options(argc, argv, 3, true, options)) {
+        if (!parse_options(argc, argv, 3, true, true, options)) {
             return 2;
         }
         SearchRequest request;
         if (!parse_search_request(argv[2], request)) {
             return 2;
         }
+        request.explain = options.explain;
         return search(request, options.database, options.limit);
     }
 
     if (command == "forget") {
-        if (!parse_options(argc, argv, 3, false, options)) {
+        if (!parse_options(argc, argv, 3, false, false, options)) {
             return 2;
         }
         return forget_directory(argv[2], options.database);
