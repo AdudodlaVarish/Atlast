@@ -194,6 +194,7 @@ atlast index <directory> [--db <database>]
 atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
 atlast history <repository> <query> [--limit <1-100>]
 atlast sources [--db <database>]
+atlast stats [--db <database>]
 atlast refresh [--db <database>]
 atlast watch [--db <database>]
 atlast forget <directory> [--db <database>]
@@ -243,12 +244,14 @@ stored metadata, parsed FTS query, and BM25 score.
 
 ```console
 $ atlast sources --db work.db
+$ atlast stats --db work.db
 $ atlast refresh --db work.db
 $ atlast watch --db work.db
 $ atlast forget ~/projects/old-service --db work.db
 ```
 
 `sources` lists every indexed root, its file count, and its last index time.
+`stats` reports total sources, files, indexed source bytes, and database bytes.
 `refresh` incrementally re-indexes every root. `watch` repeats that refresh
 every five seconds until interrupted. `forget` deletes one root's database
 rows but never deletes source files.
@@ -444,5 +447,4 @@ $ ctest --preset debug
 Bug reports should include the command, expected result, actual result,
 operating system, compiler, and Atlast version. Please do not include private
 indexed content.
-
 

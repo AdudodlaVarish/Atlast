@@ -114,4 +114,4 @@ int search(const SearchRequest& request, std::string_view database_path,
     return 0;
 }
 
-}  // namespace atlast
+}

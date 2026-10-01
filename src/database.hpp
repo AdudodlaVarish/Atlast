@@ -16,4 +16,4 @@ bool execute(sqlite3* connection, const char* sql);
 bool prepare(sqlite3* connection, const char* sql, Statement& statement);
 bool bind_text(sqlite3_stmt* statement, int index, std::string_view value);
 
-}  // namespace atlast::database
+}

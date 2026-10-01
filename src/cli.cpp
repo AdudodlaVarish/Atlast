@@ -22,6 +22,7 @@ Usage:
   atlast search <query> [--explain] [--limit <1-100>] [--db <database>]
   atlast history <repository> <query> [--limit <1-100>]
   atlast sources [--db <database>]
+  atlast stats [--db <database>]
   atlast refresh [--db <database>]
   atlast watch [--db <database>]
   atlast forget <directory> [--db <database>]
@@ -201,7 +202,7 @@ bool parse_search_request(std::string_view input, SearchRequest& request) {
     return true;
 }
 
-}  // namespace
+}
 
 int run(int argc, char* argv[]) {
     if (argc < 2) {
@@ -225,6 +226,13 @@ int run(int argc, char* argv[]) {
             return 2;
         }
         return list_sources(options.database);
+    }
+
+    if (command == "stats") {
+        if (!parse_options(argc, argv, 2, false, false, options)) {
+            return 2;
+        }
+        return show_stats(options.database);
     }
 
     if (command == "refresh") {
@@ -291,4 +299,4 @@ int run(int argc, char* argv[]) {
     return 2;
 }
 
-}  // namespace atlast
+}

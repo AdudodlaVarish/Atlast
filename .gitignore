@@ -1,9 +1,7 @@
-# CMake build directories
 /build/
 /build-*/
 /cmake-build-*/
 
-# Accidental in-source CMake output
 /CMakeCache.txt
 /CMakeFiles/
 /CTestTestfile.cmake
@@ -11,23 +9,19 @@
 /Testing/
 /cmake_install.cmake
 
-# Compiled output
 *.exe
 *.o
 *.obj
 
-# Local Atlast databases
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
 
-# User-specific CMake and editor state
 /CMakeUserPresets.json
 /.vscode/*
 !/.vscode/settings.json
 /.idea/
 
-# Operating-system files
 .DS_Store
 Thumbs.db

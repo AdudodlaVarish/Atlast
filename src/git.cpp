@@ -35,7 +35,7 @@ std::string literal_regex(std::string_view value) {
 }
 #endif
 
-}  // namespace
+}
 
 int search_git_history(const fs::path& repository, std::string_view query,
                        int limit) {
@@ -83,4 +83,4 @@ int search_git_history(const fs::path& repository, std::string_view query,
 #endif
 }
 
-}  // namespace atlast
+}

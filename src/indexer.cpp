@@ -134,7 +134,7 @@ bool load_existing(sqlite3* connection, std::string_view root,
     return true;
 }
 
-}  // namespace
+}
 
 int index_directory(const fs::path& requested_root,
                     std::string_view database_path) {
@@ -397,6 +397,42 @@ int list_sources(std::string_view database_path) {
     return 0;
 }
 
+int show_stats(std::string_view database_path) {
+    database::Connection connection = database::open(database_path);
+    if (!connection || !database::ensure_schema(connection.get())) {
+        return 1;
+    }
+
+    database::Statement statement{nullptr, sqlite3_finalize};
+    if (!database::prepare(connection.get(), R"sql(
+            SELECT (SELECT count(*) FROM sources),
+                   count(*),
+                   coalesce(sum(size), 0)
+            FROM documents
+        )sql",
+                           statement) ||
+        sqlite3_step(statement.get()) != SQLITE_ROW) {
+        std::cerr << "SQLite error: " << sqlite3_errmsg(connection.get())
+                  << '\n';
+        return 1;
+    }
+
+    std::error_code error;
+    const auto database_bytes =
+        fs::file_size(fs::path{std::string{database_path}}, error);
+    std::cout << "Sources: " << sqlite3_column_int64(statement.get(), 0) << '\n'
+              << "Files: " << sqlite3_column_int64(statement.get(), 1) << '\n'
+              << "Indexed bytes: " << sqlite3_column_int64(statement.get(), 2)
+              << '\n'
+              << "Database bytes: ";
+    if (error) {
+        std::cout << "unknown\n";
+    } else {
+        std::cout << database_bytes << '\n';
+    }
+    return 0;
+}
+
 int refresh_sources(std::string_view database_path) {
     std::vector<std::string> roots;
     {
@@ -444,8 +480,6 @@ int refresh_sources(std::string_view database_path) {
 int watch_sources(std::string_view database_path) {
     std::cout << "Watching indexed sources every 5 seconds. Press Ctrl+C to stop."
               << std::endl;
-    // ponytail: polling rescans metadata; use native notifications only if
-    // large trees make that measurably expensive.
     for (;;) {
         refresh_sources(database_path);
         std::this_thread::sleep_for(std::chrono::seconds{5});
@@ -499,4 +533,4 @@ int forget_directory(const fs::path& requested_root,
     return 0;
 }
 
-}  // namespace atlast
+}

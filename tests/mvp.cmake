@@ -68,6 +68,14 @@ if(NOT sources_output MATCHES "Root: .*source" OR
     message(FATAL_ERROR "Expected indexed source details:\n${sources_output}")
 endif()
 
+run_atlast(0 stats_output stats --db "${database}")
+if(NOT stats_output MATCHES "Sources: 2" OR
+   NOT stats_output MATCHES "Files: 3" OR
+   NOT stats_output MATCHES "Indexed bytes: [1-9][0-9]*" OR
+   NOT stats_output MATCHES "Database bytes: [1-9][0-9]*")
+    message(FATAL_ERROR "Unexpected index statistics:\n${stats_output}")
+endif()
+
 run_atlast(0 connection_search search "connection timeout" --db "${database}")
 if(NOT connection_search MATCHES "network.txt" OR
    connection_search MATCHES "ignored.bin")

@@ -108,4 +108,4 @@ bool ensure_schema(sqlite3* connection) {
     )sql");
 }
 
-}  // namespace atlast::database
+}

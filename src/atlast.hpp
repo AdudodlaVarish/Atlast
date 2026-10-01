@@ -19,6 +19,7 @@ int run(int argc, char* argv[]);
 int index_directory(const std::filesystem::path& root,
                     std::string_view database_path);
 int list_sources(std::string_view database_path);
+int show_stats(std::string_view database_path);
 int refresh_sources(std::string_view database_path);
 int watch_sources(std::string_view database_path);
 int forget_directory(const std::filesystem::path& root,
@@ -28,4 +29,4 @@ int search(const SearchRequest& request, std::string_view database_path,
 int search_git_history(const std::filesystem::path& repository,
                        std::string_view query, int limit);
 
-}  // namespace atlast
+}
